@@ -1,1 +1,80 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>軽量版 音声可視化</title>
+
+<style>
+body {
+  margin: 0;
+  background: #000;
+  color: #fff;
+  overflow: hidden;
+}
+
+#controls {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+}
+
+button {
+  padding: 10px;
+  margin: 5px;
+}
+
+.word {
+  position: absolute;
+  animation: move 4s linear forwards;
+  font-size: 24px;
+}
+
+@keyframes move {
+  from { right: -100px; }
+  to { right: 110%; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="controls">
+  <button onclick="start()">開始</button>
+  <button onclick="stop()">停止</button>
+</div>
+
+<script>
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = new SpeechRecognition();
+recognition.lang = 'ja-JP';
+recognition.continuous = true;
+
+function start() {
+  recognition.start();
+}
+
+function stop() {
+  recognition.stop();
+}
+
+recognition.onresult = (event) => {
+  const text = event.results[event.results.length - 1][0].transcript;
+  const words = text.split(/[\s、。]+/);
+
+  words.forEach(word => {
+    if (!word) return;
+
+    const el = document.createElement("div");
+    el.className = "word";
+    el.innerText = word;
+    el.style.top = Math.random() * 80 + "%";
+
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  });
+};
+</script>
+
+</body>
+</html>
