@@ -2,38 +2,69 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Live Words</title>
+<title>Live Words Pro</title>
 
 <style>
 body {
   margin: 0;
-  background: #000;
+  background: radial-gradient(circle at center, #111, #000);
   color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont;
   overflow: hidden;
 }
 
+/* 上部UI */
 #controls {
   position: fixed;
-  top: 20px;
-  left: 20px;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  gap: 10px;
   z-index: 9999;
 }
 
 button {
-  font-size: 18px;
+  flex: 1;
   padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  font-size: 16px;
 }
 
-/* ワード表示 */
+/* ワード */
 .word {
   position: absolute;
   font-weight: bold;
-  animation: move 5s linear forwards;
+  animation: flow 6s linear forwards;
+  text-shadow: 0 0 10px rgba(255,255,255,0.6);
 }
 
-@keyframes move {
-  from { right: -100px; opacity: 1; }
+@keyframes flow {
+  from { right: -120px; opacity: 1; }
   to { right: 110%; opacity: 0; }
+}
+
+/* 共起表示 */
+#network {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  max-height: 35%;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(10px);
+  font-size: 12px;
+  padding: 10px;
+  display: none;
+}
+
+.pair {
+  margin-bottom: 4px;
+  opacity: 0.8;
 }
 </style>
 </head>
@@ -42,19 +73,29 @@ button {
 
 <div id="controls">
   <button id="startBtn">開始</button>
+  <button id="toggleBtn">共起</button>
 </div>
 
-<script>
-const btn = document.getElementById("startBtn");
+<div id="network"></div>
 
-btn.addEventListener("click", function() {
+<script>
+const startBtn = document.getElementById("startBtn");
+const toggleBtn = document.getElementById("toggleBtn");
+const networkDiv = document.getElementById("network");
+
+let recognition;
+let networkOn = false;
+let co = {};
+let history = [];
+
+startBtn.addEventListener("click", () => {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
+  recognition = new SpeechRecognition();
 
   recognition.lang = 'ja-JP';
   recognition.continuous = true;
 
-  recognition.onresult = function(event) {
+  recognition.onresult = (event) => {
     const text = event.results[event.results.length - 1][0].transcript;
 
     const words = text.split(/[\s、。]+/);
@@ -62,21 +103,57 @@ btn.addEventListener("click", function() {
     words.forEach(word => {
       if (!word) return;
 
-      const el = document.createElement("div");
-      el.className = "word";
-      el.innerText = word;
-
-      el.style.top = Math.random() * 80 + "%";
-      el.style.fontSize = (20 + Math.random()*20) + "px";
-      el.style.color = `hsl(${Math.random()*360}, 80%, 60%)`;
-
-      document.body.appendChild(el);
-      setTimeout(() => el.remove(), 5000);
+      showWord(word);
+      updateCo(word);
     });
+
+    if (networkOn) drawNetwork();
   };
 
   recognition.start();
 });
+
+toggleBtn.addEventListener("click", () => {
+  networkOn = !networkOn;
+  networkDiv.style.display = networkOn ? "block" : "none";
+});
+
+function showWord(word) {
+  const el = document.createElement("div");
+  el.className = "word";
+  el.innerText = word;
+
+  el.style.top = Math.random()*75 + "%";
+  el.style.fontSize = (18 + Math.random()*22) + "px";
+  el.style.color = `hsl(${Math.random()*360}, 90%, 65%)`;
+
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+}
+
+function updateCo(word) {
+  history.forEach(prev => {
+    const key = prev + " - " + word;
+    co[key] = (co[key] || 0) + 1;
+  });
+
+  history.push(word);
+  if (history.length > 4) history.shift();
+}
+
+function drawNetwork() {
+  networkDiv.innerHTML = "";
+
+  Object.entries(co)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0, 20)
+    .forEach(([k,v])=>{
+      const div = document.createElement("div");
+      div.className = "pair";
+      div.innerText = k + " (" + v + ")";
+      networkDiv.appendChild(div);
+    });
+}
 </script>
 
 </body>
