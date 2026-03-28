@@ -2,206 +2,30 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>音声ビジュアライザーPro</title>
-
-<!-- ライブラリ -->
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
-
+<title>音声テスト</title>
 <style>
-body {
-  margin: 0;
-  background: #000;
-  color: #fff;
-  font-family: sans-serif;
-  overflow: hidden;
-}
-
-#controls {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  z-index: 10;
-}
-
-button {
-  padding: 10px;
-  margin: 3px;
-  border-radius: 10px;
-  border: none;
-}
-
-#flow {
-  position: absolute;
-  top: 40%;
-  width: 100%;
-}
-
-.word {
-  position: absolute;
-  font-weight: bold;
-  animation: move 5s linear forwards;
-}
-
-@keyframes move {
-  from { right: -100px; opacity: 1; }
-  to { right: 110%; opacity: 0; }
-}
-
-#network {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  height: 40%;
-}
+body { background:#000; color:#fff; }
+button { font-size:20px; padding:15px; }
 </style>
 </head>
-
 <body>
 
-<div id="controls">
-  <button onclick="start()">開始</button>
-  <button onclick="stop()">停止</button>
-  <button onclick="toggleNetwork()">ネットワーク</button>
-</div>
-
-<div id="flow"></div>
-<svg id="network"></svg>
+<button onclick="start()">開始</button>
 
 <script>
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = new SpeechRecognition();
-recognition.lang = 'ja-JP';
-recognition.continuous = true;
 
-let tokenizer;
-let networkOn = false;
-let nodes = {};
-let links = [];
-let lastWords = [];
-
-// kuromoji初期化
-kuromoji.builder({ dicPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/" })
-.build(function(err, t) {
-  tokenizer = t;
-});
-
-// 音声開始
 function start() {
+  alert("ボタン反応OK");
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'ja-JP';
+
+  recognition.onresult = (e) => {
+    alert(e.results[0][0].transcript);
+  };
+
   recognition.start();
-}
-
-// 停止
-function stop() {
-  recognition.stop();
-}
-
-// ON/OFF
-function toggleNetwork() {
-  networkOn = !networkOn;
-  document.getElementById("network").style.display = networkOn ? "block" : "none";
-}
-
-// 結果取得
-recognition.onresult = (event) => {
-  const text = event.results[event.results.length - 1][0].transcript;
-  process(text);
-};
-
-// 解析
-function process(text) {
-  if (!tokenizer) return;
-
-  const tokens = tokenizer.tokenize(text);
-
-  tokens.forEach(t => {
-    const word = t.surface_form;
-    if (!word || word.match(/[、。]/)) return;
-
-    showWord(word);
-
-    // ノード
-    if (!nodes[word]) nodes[word] = { id: word, count: 0 };
-    nodes[word].count++;
-
-    // 共起
-    lastWords.forEach(prev => {
-      links.push({ source: prev, target: word });
-    });
-
-    lastWords.push(word);
-    if (lastWords.length > 5) lastWords.shift();
-  });
-
-  if (networkOn) drawGraph();
-}
-
-// 表示
-function showWord(word) {
-  const el = document.createElement("div");
-  el.className = "word";
-  el.innerText = word;
-
-  el.style.top = Math.random() * 70 + "%";
-  el.style.fontSize = (20 + Math.random()*20) + "px";
-  el.style.color = `hsl(${Math.random()*360}, 80%, 60%)`;
-
-  document.getElementById("flow").appendChild(el);
-  setTimeout(() => el.remove(), 5000);
-}
-
-// グラフ描画
-function drawGraph() {
-  const svg = d3.select("#network");
-  svg.selectAll("*").remove();
-
-  const width = window.innerWidth;
-  const height = window.innerHeight * 0.4;
-
-  const simulation = d3.forceSimulation(Object.values(nodes))
-    .force("link", d3.forceLink(links).distance(80).id(d => d.id))
-    .force("charge", d3.forceManyBody().strength(-100))
-    .force("center", d3.forceCenter(width/2, height/2));
-
-  const link = svg.append("g")
-    .selectAll("line")
-    .data(links)
-    .enter()
-    .append("line")
-    .style("stroke", "#888");
-
-  const node = svg.append("g")
-    .selectAll("circle")
-    .data(Object.values(nodes))
-    .enter()
-    .append("circle")
-    .attr("r", d => 5 + d.count)
-    .style("fill", "orange");
-
-  const text = svg.append("g")
-    .selectAll("text")
-    .data(Object.values(nodes))
-    .enter()
-    .append("text")
-    .text(d => d.id)
-    .style("font-size", "10px")
-    .style("fill", "#fff");
-
-  simulation.on("tick", () => {
-    link
-      .attr("x1", d => d.source.x)
-      .attr("y1", d => d.source.y)
-      .attr("x2", d => d.target.x)
-      .attr("y2", d => d.target.y);
-
-    node
-      .attr("cx", d => d.x)
-      .attr("cy", d => d.y);
-
-    text
-      .attr("x", d => d.x)
-      .attr("y", d => d.y);
-  });
 }
 </script>
 
