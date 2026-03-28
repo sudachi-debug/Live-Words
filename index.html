@@ -2,32 +2,52 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>超軽量版</title>
+<title>音声テスト</title>
+
 <style>
-body { background:#000; color:#fff; }
-button { font-size:20px; padding:15px; margin:10px; }
+body {
+  margin: 0;
+  background: #000;
+  color: #fff;
+}
+
+/* ボタンを最前面に */
+#controls {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 9999; /* ←これ重要 */
+}
+
+button {
+  font-size: 20px;
+  padding: 15px;
+}
+
 .word {
-  position:absolute;
+  position: absolute;
   animation: move 4s linear forwards;
 }
+
 @keyframes move {
-  from { right:-100px; }
-  to { right:110%; }
+  from { right: -100px; }
+  to { right: 110%; }
 }
 </style>
 </head>
+
 <body>
 
-<button onclick="start()">開始</button>
+<div id="controls">
+  <button onclick="start()">開始</button>
+</div>
 
 <script>
-let recognition;
-
 function start() {
-  alert("起動OK");
+  alert("押せた！");
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
+  const recognition = new SpeechRecognition();
 
   recognition.lang = 'ja-JP';
   recognition.continuous = true;
@@ -38,10 +58,10 @@ function start() {
     const el = document.createElement("div");
     el.className = "word";
     el.innerText = text;
-    el.style.top = Math.random()*80 + "%";
+    el.style.top = Math.random() * 80 + "%";
 
     document.body.appendChild(el);
-    setTimeout(()=>el.remove(),4000);
+    setTimeout(() => el.remove(), 4000);
   };
 
   recognition.start();
