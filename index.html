@@ -2,16 +2,16 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>修正版</title>
+<title>Live Words</title>
 
 <style>
 body {
   margin: 0;
   background: #000;
   color: #fff;
+  overflow: hidden;
 }
 
-/* ボタン最前面 */
 #controls {
   position: fixed;
   top: 20px;
@@ -20,8 +20,20 @@ body {
 }
 
 button {
-  font-size: 20px;
-  padding: 15px;
+  font-size: 18px;
+  padding: 12px;
+}
+
+/* ワード表示 */
+.word {
+  position: absolute;
+  font-weight: bold;
+  animation: move 5s linear forwards;
+}
+
+@keyframes move {
+  from { right: -100px; opacity: 1; }
+  to { right: 110%; opacity: 0; }
 }
 </style>
 </head>
@@ -36,15 +48,31 @@ button {
 const btn = document.getElementById("startBtn");
 
 btn.addEventListener("click", function() {
-  alert("押せた！");
-
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
 
   recognition.lang = 'ja-JP';
+  recognition.continuous = true;
 
-  recognition.onresult = function(e) {
-    alert(e.results[0][0].transcript);
+  recognition.onresult = function(event) {
+    const text = event.results[event.results.length - 1][0].transcript;
+
+    const words = text.split(/[\s、。]+/);
+
+    words.forEach(word => {
+      if (!word) return;
+
+      const el = document.createElement("div");
+      el.className = "word";
+      el.innerText = word;
+
+      el.style.top = Math.random() * 80 + "%";
+      el.style.fontSize = (20 + Math.random()*20) + "px";
+      el.style.color = `hsl(${Math.random()*360}, 80%, 60%)`;
+
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 5000);
+    });
   };
 
   recognition.start();
