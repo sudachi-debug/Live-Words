@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>音声テスト</title>
+<title>修正版</title>
 
 <style>
 body {
@@ -11,27 +11,17 @@ body {
   color: #fff;
 }
 
-/* ボタンを最前面に */
+/* ボタン最前面 */
 #controls {
   position: fixed;
   top: 20px;
   left: 20px;
-  z-index: 9999; /* ←これ重要 */
+  z-index: 9999;
 }
 
 button {
   font-size: 20px;
   padding: 15px;
-}
-
-.word {
-  position: absolute;
-  animation: move 4s linear forwards;
-}
-
-@keyframes move {
-  from { right: -100px; }
-  to { right: 110%; }
 }
 </style>
 </head>
@@ -39,33 +29,26 @@ button {
 <body>
 
 <div id="controls">
-  <button onclick="start()">開始</button>
+  <button id="startBtn">開始</button>
 </div>
 
 <script>
-function start() {
+const btn = document.getElementById("startBtn");
+
+btn.addEventListener("click", function() {
   alert("押せた！");
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
 
   recognition.lang = 'ja-JP';
-  recognition.continuous = true;
 
-  recognition.onresult = (event) => {
-    const text = event.results[event.results.length - 1][0].transcript;
-
-    const el = document.createElement("div");
-    el.className = "word";
-    el.innerText = text;
-    el.style.top = Math.random() * 80 + "%";
-
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 4000);
+  recognition.onresult = function(e) {
+    alert(e.results[0][0].transcript);
   };
 
   recognition.start();
-}
+});
 </script>
 
 </body>
