@@ -2,45 +2,42 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Live Words Pro</title>
+<title>Live Words Pro+</title>
 
 <style>
 body {
   margin: 0;
-  background: radial-gradient(circle at center, #111, #000);
+  background: radial-gradient(circle, #111, #000);
   color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont;
+  font-family: -apple-system;
   overflow: hidden;
 }
 
-/* 上部UI */
 #controls {
   position: fixed;
   top: 10px;
   left: 10px;
   right: 10px;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   z-index: 9999;
 }
 
 button {
   flex: 1;
   padding: 12px;
-  border: none;
   border-radius: 12px;
+  border: none;
   background: rgba(255,255,255,0.1);
-  color: #fff;
-  backdrop-filter: blur(10px);
-  font-size: 16px;
+  color: white;
+  font-size: 15px;
 }
 
-/* ワード */
 .word {
   position: absolute;
   font-weight: bold;
   animation: flow 6s linear forwards;
-  text-shadow: 0 0 10px rgba(255,255,255,0.6);
+  text-shadow: 0 0 12px rgba(255,255,255,0.6);
 }
 
 @keyframes flow {
@@ -48,23 +45,16 @@ button {
   to { right: 110%; opacity: 0; }
 }
 
-/* 共起表示 */
 #network {
   position: fixed;
   bottom: 0;
   width: 100%;
   max-height: 35%;
   overflow-y: auto;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(10px);
+  background: rgba(0,0,0,0.7);
   font-size: 12px;
   padding: 10px;
   display: none;
-}
-
-.pair {
-  margin-bottom: 4px;
-  opacity: 0.8;
 }
 </style>
 </head>
@@ -73,6 +63,7 @@ button {
 
 <div id="controls">
   <button id="startBtn">開始</button>
+  <button id="stopBtn">停止</button>
   <button id="toggleBtn">共起</button>
 </div>
 
@@ -80,20 +71,27 @@ button {
 
 <script>
 const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
 const toggleBtn = document.getElementById("toggleBtn");
 const networkDiv = document.getElementById("network");
 
 let recognition;
+let running = false;
 let networkOn = false;
 let co = {};
 let history = [];
 
+const stopWords = ["えー","あー","うー","その","えっと"];
+
 startBtn.addEventListener("click", () => {
+  if (running) return;
+
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SpeechRecognition();
 
   recognition.lang = 'ja-JP';
   recognition.continuous = true;
+  recognition.interimResults = false;
 
   recognition.onresult = (event) => {
     const text = event.results[event.results.length - 1][0].transcript;
@@ -101,7 +99,7 @@ startBtn.addEventListener("click", () => {
     const words = text.split(/[\s、。]+/);
 
     words.forEach(word => {
-      if (!word) return;
+      if (!word || stopWords.includes(word)) return;
 
       showWord(word);
       updateCo(word);
@@ -110,7 +108,17 @@ startBtn.addEventListener("click", () => {
     if (networkOn) drawNetwork();
   };
 
+  recognition.onend = () => {
+    if (running) recognition.start(); // 自動再起動で安定
+  };
+
   recognition.start();
+  running = true;
+});
+
+stopBtn.addEventListener("click", () => {
+  if (recognition) recognition.stop();
+  running = false;
 });
 
 toggleBtn.addEventListener("click", () => {
@@ -149,7 +157,6 @@ function drawNetwork() {
     .slice(0, 20)
     .forEach(([k,v])=>{
       const div = document.createElement("div");
-      div.className = "pair";
       div.innerText = k + " (" + v + ")";
       networkDiv.appendChild(div);
     });
