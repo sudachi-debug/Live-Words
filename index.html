@@ -2,15 +2,15 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Live Words Pro+</title>
+<title>Live Words 安定版</title>
 
 <style>
 body {
   margin: 0;
-  background: radial-gradient(circle, #111, #000);
+  background: #000;
   color: #fff;
-  font-family: -apple-system;
   overflow: hidden;
+  font-family: -apple-system;
 }
 
 #controls {
@@ -26,34 +26,30 @@ body {
 button {
   flex: 1;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: 10px;
   border: none;
   background: rgba(255,255,255,0.1);
   color: white;
-  font-size: 15px;
 }
 
 .word {
   position: absolute;
-  font-weight: bold;
-  animation: flow 6s linear forwards;
-  text-shadow: 0 0 12px rgba(255,255,255,0.6);
+  animation: flow 5s linear forwards;
 }
 
 @keyframes flow {
-  from { right: -120px; opacity: 1; }
-  to { right: 110%; opacity: 0; }
+  from { right: -100px; }
+  to { right: 110%; }
 }
 
 #network {
   position: fixed;
   bottom: 0;
   width: 100%;
-  max-height: 35%;
+  max-height: 30%;
   overflow-y: auto;
   background: rgba(0,0,0,0.7);
   font-size: 12px;
-  padding: 10px;
   display: none;
 }
 </style>
@@ -70,23 +66,23 @@ button {
 <div id="network"></div>
 
 <script>
-const startBtn = document.getElementById("startBtn");
-const stopBtn = document.getElementById("stopBtn");
-const toggleBtn = document.getElementById("toggleBtn");
-const networkDiv = document.getElementById("network");
-
-let recognition;
+let recognition = null;
 let running = false;
 let networkOn = false;
 let co = {};
 let history = [];
 
-const stopWords = ["えー","あー","うー","その","えっと"];
+const stopWords = ["えー","あー","その","えっと"];
 
-startBtn.addEventListener("click", () => {
-  if (running) return;
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SpeechRecognition) {
+  alert("このブラウザは音声認識に対応していません");
+}
+
+document.getElementById("startBtn").addEventListener("click", () => {
+  if (running || !SpeechRecognition) return;
+
   recognition = new SpeechRecognition();
 
   recognition.lang = 'ja-JP';
@@ -94,36 +90,43 @@ startBtn.addEventListener("click", () => {
   recognition.interimResults = false;
 
   recognition.onresult = (event) => {
-    const text = event.results[event.results.length - 1][0].transcript;
+    try {
+      const text = event.results[event.results.length - 1][0].transcript;
+      const words = text.split(/[\s、。]+/);
 
-    const words = text.split(/[\s、。]+/);
+      words.forEach(word => {
+        if (!word || stopWords.includes(word)) return;
 
-    words.forEach(word => {
-      if (!word || stopWords.includes(word)) return;
+        showWord(word);
+        updateCo(word);
+      });
 
-      showWord(word);
-      updateCo(word);
-    });
-
-    if (networkOn) drawNetwork();
+      if (networkOn) drawNetwork();
+    } catch(e) {
+      console.log("error", e);
+    }
   };
 
   recognition.onend = () => {
-    if (running) recognition.start(); // 自動再起動で安定
+    if (running) {
+      try { recognition.start(); } catch(e) {}
+    }
   };
 
   recognition.start();
   running = true;
 });
 
-stopBtn.addEventListener("click", () => {
-  if (recognition) recognition.stop();
+document.getElementById("stopBtn").addEventListener("click", () => {
   running = false;
+  if (recognition) {
+    try { recognition.stop(); } catch(e) {}
+  }
 });
 
-toggleBtn.addEventListener("click", () => {
+document.getElementById("toggleBtn").addEventListener("click", () => {
   networkOn = !networkOn;
-  networkDiv.style.display = networkOn ? "block" : "none";
+  document.getElementById("network").style.display = networkOn ? "block" : "none";
 });
 
 function showWord(word) {
@@ -131,17 +134,17 @@ function showWord(word) {
   el.className = "word";
   el.innerText = word;
 
-  el.style.top = Math.random()*75 + "%";
-  el.style.fontSize = (18 + Math.random()*22) + "px";
+  el.style.top = Math.random()*80 + "%";
+  el.style.fontSize = (18 + Math.random()*20) + "px";
   el.style.color = `hsl(${Math.random()*360}, 90%, 65%)`;
 
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 6000);
+  setTimeout(()=>el.remove(),5000);
 }
 
 function updateCo(word) {
   history.forEach(prev => {
-    const key = prev + " - " + word;
+    const key = prev + "-" + word;
     co[key] = (co[key] || 0) + 1;
   });
 
@@ -150,15 +153,16 @@ function updateCo(word) {
 }
 
 function drawNetwork() {
-  networkDiv.innerHTML = "";
+  const net = document.getElementById("network");
+  net.innerHTML = "";
 
   Object.entries(co)
     .sort((a,b)=>b[1]-a[1])
-    .slice(0, 20)
+    .slice(0,15)
     .forEach(([k,v])=>{
       const div = document.createElement("div");
       div.innerText = k + " (" + v + ")";
-      networkDiv.appendChild(div);
+      net.appendChild(div);
     });
 }
 </script>
