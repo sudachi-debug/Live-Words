@@ -35,7 +35,7 @@ function resize(){
 resize();
 window.onresize = resize;
 
-// ===== UI更新 =====
+// ===== UI =====
 function updateModeLabel(){
   const label = document.getElementById("modeLabel");
   label.innerText = mode === "flow"
@@ -50,7 +50,7 @@ function updateStatus(){
     running ? "● 録音中" : "停止中";
 }
 
-// ===== 音声 =====
+// ===== 音声（安定版） =====
 function start(){
   if(running) return;
 
@@ -60,6 +60,10 @@ function start(){
   recognition.continuous = true;
   recognition.interimResults = true;
 
+  // ★重要：先にtrue
+  running = true;
+  updateStatus();
+
   recognition.onresult = (e)=>{
     let text = "";
     for(let i=e.resultIndex;i<e.results.length;i++){
@@ -68,13 +72,20 @@ function start(){
     processText(text);
   };
 
+  recognition.onerror = (e)=>{
+    console.log("error:", e);
+  };
+
+  // ★最重要：強制ループ
   recognition.onend = ()=>{
-    if(running) recognition.start();
+    setTimeout(()=>{
+      if(running){
+        recognition.start();
+      }
+    }, 200);
   };
 
   recognition.start();
-  running = true;
-  updateStatus();
 }
 
 function stop(){
