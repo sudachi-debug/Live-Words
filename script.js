@@ -1,20 +1,5 @@
-// ===== 設定 =====
-const COLORS = ["#ff6b6b","#4dabf7","#51cf66","#ffa94d","#845ef7"];
-
-const STOP_WORDS = ["えー","あの","これ","それ","まあ","ちょっと","その","そして"];
-
-const NORMALIZE = {
-  "参政":"参政党","参政党":"参政党",
-  "立憲":"立憲民主党","立憲民主党":"立憲民主党",
-  "中道":"中道改革連合","中道改革":"中道改革連合",
-  "自民":"自由民主党","自民党":"自由民主党",
-  "維新":"日本維新の会"
-};
-
-const BOOST = [
-  "減税","教育","安全保障","子育て","経済","外交",
-  "憲法","防衛","インフラ","エネルギー","少子化"
-];
+// ===== 色 =====
+const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
 
 // ===== 状態 =====
 let words = {};
@@ -36,21 +21,17 @@ resize();
 window.onresize = resize;
 
 // ===== UI =====
-function updateModeLabel(){
-  const label = document.getElementById("modeLabel");
-  label.innerText = mode === "flow"
-    ? "モード：ワードフロー"
-    : "モード：共起ネットワーク";
-
-  label.style.color = mode === "flow" ? "#4dabf7" : "#ff6b6b";
-}
-
 function updateStatus(){
   document.getElementById("status").innerText =
-    running ? "● 録音中" : "停止中";
+    running ? "● Listening..." : "停止中";
 }
 
-// ===== 音声（安定版） =====
+function updateMode(){
+  document.getElementById("modeLabel").innerText =
+    mode==="flow" ? "モード：フロー" : "モード：ネットワーク";
+}
+
+// ===== 音声 =====
 function start(){
   if(running) return;
 
@@ -60,29 +41,21 @@ function start(){
   recognition.continuous = true;
   recognition.interimResults = true;
 
-  // ★重要：先にtrue
   running = true;
   updateStatus();
 
   recognition.onresult = (e)=>{
-    let text = "";
+    let text="";
     for(let i=e.resultIndex;i<e.results.length;i++){
       text += e.results[i][0].transcript;
     }
     processText(text);
   };
 
-  recognition.onerror = (e)=>{
-    console.log("error:", e);
-  };
-
-  // ★最重要：強制ループ
   recognition.onend = ()=>{
     setTimeout(()=>{
-      if(running){
-        recognition.start();
-      }
-    }, 200);
+      if(running) recognition.start();
+    },200);
   };
 
   recognition.start();
@@ -97,58 +70,52 @@ function stop(){
 // ===== テキスト処理 =====
 function processText(text){
   let tokens = text.split(/[、。 ,]/);
-  let currentWords = [];
+  let current = [];
 
   tokens.forEach(w=>{
-    w = w.trim();
-    if(!w || STOP_WORDS.includes(w)) return;
-
-    if(NORMALIZE[w]) w = NORMALIZE[w];
+    if(!w) return;
 
     if(!words[w]){
       words[w] = {
-        count: 0,
-        weight: 0,
+        count:0,
+        weight:0,
         group: Math.floor(Math.random()*COLORS.length)
       };
     }
 
     words[w].count++;
-    words[w].weight = words[w].count * (BOOST.includes(w) ? 2 : 1);
+    words[w].weight = words[w].count;
 
-    currentWords.push(w);
+    current.push(w);
 
     flow.push({
-      text: w,
-      x: canvas.width,
-      y: Math.random()*canvas.height,
-      size: 12 + words[w].weight * 2,
-      group: words[w].group
+      text:w,
+      x:canvas.width,
+      y:Math.random()*canvas.height,
+      size:14 + words[w].weight*2,
+      group:words[w].group,
+      t:Math.random()*1000
     });
   });
 
-  currentWords.forEach(a=>{
-    currentWords.forEach(b=>{
-      if(a===b) return;
-      const key = a+"_"+b;
-      edges[key] = (edges[key]||0)+1;
+  current.forEach(a=>{
+    current.forEach(b=>{
+      if(a!==b){
+        let key=a+"_"+b;
+        edges[key]=(edges[key]||0)+1;
+      }
     });
   });
-
-  if(Object.keys(words).length > 30){
-    let sorted = Object.entries(words).sort((a,b)=>a[1].weight-b[1].weight);
-    delete words[sorted[0][0]];
-  }
 }
 
 // ===== 描画 =====
 function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawBackground();
 
   if(mode==="flow"){
-    drawFlow(1);
+    drawFlow();
   }else{
-    drawFlow(0.2);
+    drawFlow(0.1);
     drawNetwork();
   }
 
@@ -156,14 +123,30 @@ function draw(){
 }
 draw();
 
+// ===== 背景 =====
+function drawBackground(){
+  let grad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+  grad.addColorStop(0,"#0f2027");
+  grad.addColorStop(1,"#203a43");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
 // ===== フロー =====
-function drawFlow(alpha){
+function drawFlow(alpha=1){
   ctx.globalAlpha = alpha;
 
   flow.forEach((f,i)=>{
     ctx.fillStyle = COLORS[f.group];
     ctx.font = f.size+"px sans-serif";
-    ctx.fillText(f.text, f.x, f.y);
+
+    ctx.shadowColor = COLORS[f.group];
+    ctx.shadowBlur = 20;
+
+    ctx.fillText(f.text,f.x,f.y);
+
+    // ゆらぎ
+    f.y += Math.sin(Date.now()*0.002 + f.t)*0.5;
 
     f.x -= 2 + f.size*0.05;
 
@@ -172,60 +155,75 @@ function drawFlow(alpha){
     }
   });
 
+  ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
 }
 
 // ===== ネットワーク =====
 function drawNetwork(){
-  const keys = Object.keys(words);
-  const cx = canvas.width/2;
-  const cy = canvas.height/2;
-  const r = Math.min(canvas.width,canvas.height)/3;
+  let keys = Object.keys(words);
+  if(keys.length === 0) return;
 
-  let pos = {};
+  let centerX = canvas.width/2;
+  let centerY = canvas.height/2;
+
+  // 最大ワード
+  let maxWord = keys.sort((a,b)=>words[b].weight-words[a].weight)[0];
+
+  // 中心
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 40px sans-serif";
+  ctx.shadowColor = "#ff5252";
+  ctx.shadowBlur = 30;
+  ctx.fillText(maxWord,centerX-50,centerY);
+
+  ctx.shadowBlur = 0;
+
+  // 周囲配置
+  let radius = 200;
 
   keys.forEach((k,i)=>{
-    const angle = (i/keys.length)*Math.PI*2;
-    pos[k] = {
-      x: cx + Math.cos(angle)*r,
-      y: cy + Math.sin(angle)*r
-    };
-  });
+    let angle = (i/keys.length)*Math.PI*2;
+    let x = centerX + Math.cos(angle)*radius;
+    let y = centerY + Math.sin(angle)*radius;
 
-  Object.keys(edges).forEach(key=>{
-    let [a,b] = key.split("_");
-    if(!pos[a]||!pos[b]) return;
+    // 線
+    let key = maxWord+"_"+k;
+    let strength = edges[key]||1;
 
-    ctx.strokeStyle = "#ccc";
-    ctx.lineWidth = Math.min(5, edges[key]*0.4);
+    ctx.strokeStyle = COLORS[words[k].group];
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = Math.min(5,strength*0.3);
 
     ctx.beginPath();
-    ctx.moveTo(pos[a].x,pos[a].y);
-    ctx.lineTo(pos[b].x,pos[b].y);
+    ctx.moveTo(centerX,centerY);
+    ctx.lineTo(x,y);
     ctx.stroke();
-  });
 
-  keys.forEach(k=>{
-    let w = words[k];
-    let p = pos[k];
+    // ノード
+    ctx.globalAlpha = 1;
 
-    ctx.fillStyle = COLORS[w.group];
+    let grad = ctx.createRadialGradient(x,y,5,x,y,30);
+    grad.addColorStop(0,COLORS[words[k].group]);
+    grad.addColorStop(1,"transparent");
+
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(p.x,p.y,10 + w.weight,0,Math.PI*2);
+    ctx.arc(x,y,10+words[k].weight,0,Math.PI*2);
     ctx.fill();
 
-    ctx.fillStyle = "#333";
-    ctx.font = "12px sans-serif";
-    ctx.fillText(k,p.x+10,p.y);
+    ctx.fillStyle="#fff";
+    ctx.font="14px sans-serif";
+    ctx.fillText(k,x+10,y);
   });
 }
 
-// ===== モード切替 =====
+// ===== モード =====
 function toggleMode(){
   mode = mode==="flow" ? "network" : "flow";
-  updateModeLabel();
+  updateMode();
 }
 
-// 初期表示
-updateModeLabel();
+// 初期
 updateStatus();
+updateMode();
