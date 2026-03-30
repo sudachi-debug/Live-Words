@@ -1,5 +1,23 @@
-// ===== 色 =====
+// ===== 設定 =====
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
+
+const STOP_WORDS = [
+  "えー","あの","これ","それ","まあ","ちょっと","その","そして",
+  "はい","そう","なるほど","えっと"
+];
+
+const NORMALIZE = {
+  "参政":"参政党","参政党":"参政党",
+  "立憲":"立憲民主党","立憲民主党":"立憲民主党",
+  "中道":"中道改革連合","中道改革":"中道改革連合",
+  "自民":"自由民主党","自民党":"自由民主党",
+  "維新":"日本維新の会"
+};
+
+const BOOST = [
+  "減税","教育","安全保障","子育て","経済","外交",
+  "憲法","防衛","インフラ","エネルギー","少子化"
+];
 
 // ===== 状態 =====
 let words = {};
@@ -67,37 +85,72 @@ function stop(){
   updateStatus();
 }
 
+// ===== 精度改善①：連続語抽出 =====
+function extractRepeats(word){
+  for(let len = 1; len <= word.length/2; len++){
+    let unit = word.slice(0, len);
+
+    if(unit.repeat(word.length / len) === word){
+      return {
+        base: unit,
+        count: word.length / len
+      };
+    }
+  }
+  return { base: word, count: 1 };
+}
+
 // ===== テキスト処理 =====
 function processText(text){
   let tokens = text.split(/[、。 ,]/);
   let current = [];
 
   tokens.forEach(w=>{
+    w = w.trim();
     if(!w) return;
 
-    if(!words[w]){
-      words[w] = {
+    // ★短すぎるノイズ除去
+    if(w.length === 1) return;
+
+    // ★連続語処理
+    let { base, count } = extractRepeats(w);
+    let word = base;
+
+    // ★揺らぎ統一
+    if(NORMALIZE[word]) word = NORMALIZE[word];
+
+    // ★ストップワード除去
+    if(STOP_WORDS.includes(word)) return;
+
+    if(!words[word]){
+      words[word] = {
         count:0,
         weight:0,
         group: Math.floor(Math.random()*COLORS.length)
       };
     }
 
-    words[w].count++;
-    words[w].weight = words[w].count;
+    // ★回数まとめて加算
+    words[word].count += count;
 
-    current.push(w);
+    // ★重み（優遇あり）
+    let boost = BOOST.includes(word) ? 2 : 1;
+    words[word].weight = words[word].count * boost;
 
+    current.push(word);
+
+    // ★表示は1回だけ
     flow.push({
-      text:w,
+      text:word,
       x:canvas.width,
       y:Math.random()*canvas.height,
-      size:14 + words[w].weight*2,
-      group:words[w].group,
+      size:14 + words[word].weight*2,
+      group:words[word].group,
       t:Math.random()*1000
     });
   });
 
+  // 共起
   current.forEach(a=>{
     current.forEach(b=>{
       if(a!==b){
@@ -106,6 +159,12 @@ function processText(text){
       }
     });
   });
+
+  // 上限管理
+  if(Object.keys(words).length > 30){
+    let sorted = Object.entries(words).sort((a,b)=>a[1].weight-b[1].weight);
+    delete words[sorted[0][0]];
+  }
 }
 
 // ===== 描画 =====
@@ -145,9 +204,7 @@ function drawFlow(alpha=1){
 
     ctx.fillText(f.text,f.x,f.y);
 
-    // ゆらぎ
     f.y += Math.sin(Date.now()*0.002 + f.t)*0.5;
-
     f.x -= 2 + f.size*0.05;
 
     if(f.x < -100){
@@ -164,57 +221,49 @@ function drawNetwork(){
   let keys = Object.keys(words);
   if(keys.length === 0) return;
 
-  let centerX = canvas.width/2;
-  let centerY = canvas.height/2;
+  let cx = canvas.width/2;
+  let cy = canvas.height/2;
 
-  // 最大ワード
   let maxWord = keys.sort((a,b)=>words[b].weight-words[a].weight)[0];
 
-  // 中心
-  ctx.fillStyle = "#fff";
-  ctx.font = "bold 40px sans-serif";
+  ctx.fillStyle = "#ff5252";
+  ctx.font = "bold 42px sans-serif";
   ctx.shadowColor = "#ff5252";
   ctx.shadowBlur = 30;
-  ctx.fillText(maxWord,centerX-50,centerY);
-
+  ctx.fillText(maxWord, cx - 60, cy);
   ctx.shadowBlur = 0;
 
-  // 周囲配置
-  let radius = 200;
+  let radius = 220;
 
   keys.forEach((k,i)=>{
-    let angle = (i/keys.length)*Math.PI*2;
-    let x = centerX + Math.cos(angle)*radius;
-    let y = centerY + Math.sin(angle)*radius;
+    if(k === maxWord) return;
 
-    // 線
-    let key = maxWord+"_"+k;
-    let strength = edges[key]||1;
+    let angle = (i/keys.length)*Math.PI*2;
+    let x = cx + Math.cos(angle)*radius;
+    let y = cy + Math.sin(angle)*radius;
+
+    let strength = edges[maxWord+"_"+k] || 1;
 
     ctx.strokeStyle = COLORS[words[k].group];
-    ctx.globalAlpha = 0.3;
-    ctx.lineWidth = Math.min(5,strength*0.3);
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = Math.min(6, strength*0.5);
 
     ctx.beginPath();
-    ctx.moveTo(centerX,centerY);
-    ctx.lineTo(x,y);
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(x, y);
     ctx.stroke();
 
-    // ノード
     ctx.globalAlpha = 1;
 
-    let grad = ctx.createRadialGradient(x,y,5,x,y,30);
-    grad.addColorStop(0,COLORS[words[k].group]);
-    grad.addColorStop(1,"transparent");
+    ctx.fillStyle = COLORS[words[k].group];
+    ctx.font = (14 + words[k].weight*2) + "px sans-serif";
 
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(x,y,10+words[k].weight,0,Math.PI*2);
-    ctx.fill();
+    ctx.shadowColor = COLORS[words[k].group];
+    ctx.shadowBlur = 15;
 
-    ctx.fillStyle="#fff";
-    ctx.font="14px sans-serif";
-    ctx.fillText(k,x+10,y);
+    ctx.fillText(k, x, y);
+
+    ctx.shadowBlur = 0;
   });
 }
 
