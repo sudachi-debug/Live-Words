@@ -2,34 +2,45 @@
 <html lang="ja">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>音声表示</title>
+<title>リアルタイム ワード可視化</title>
 
 <style>
-body { font-family: sans-serif; padding: 20px; }
-#result {
-  border: 1px solid #ccc;
-  padding: 15px;
-  min-height: 150px;
-  white-space: pre-wrap;
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #f8f9fb;
+  overflow: hidden;
 }
+
+#ui {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+}
+
 button {
-  font-size: 18px;
+  font-size: 16px;
   padding: 10px;
-  margin: 5px;
+  margin-right: 5px;
+}
+
+canvas {
+  display: block;
 }
 </style>
 </head>
 
 <body>
 
-<h2>音声リアルタイム表示</h2>
+<div id="ui">
+  <button onclick="start()">開始</button>
+  <button onclick="stop()">停止</button>
+  <button onclick="toggleMode()">モード切替</button>
+</div>
 
-<button onclick="start()">開始</button>
-<button onclick="stop()">停止</button>
-
-<div id="result"></div>
+<canvas id="canvas"></canvas>
 
 <script src="script.js"></script>
-
 </body>
 </html>
