@@ -85,18 +85,28 @@ function stop(){
   updateStatus();
 }
 
-// ===== 精度改善①：連続語抽出 =====
+// ===== 精度改善：繰り返し検出（強化版） =====
 function extractRepeats(word){
-  for(let len = 1; len <= word.length/2; len++){
-    let unit = word.slice(0, len);
 
-    if(unit.repeat(word.length / len) === word){
+  for(let len = 2; len <= word.length/2; len++){
+
+    let unit = word.slice(0, len);
+    let count = 0;
+    let pos = 0;
+
+    while(word.slice(pos, pos + len) === unit){
+      count++;
+      pos += len;
+    }
+
+    if(count >= 2){
       return {
         base: unit,
-        count: word.length / len
+        count: count
       };
     }
   }
+
   return { base: word, count: 1 };
 }
 
@@ -109,17 +119,12 @@ function processText(text){
     w = w.trim();
     if(!w) return;
 
-    // ★短すぎるノイズ除去
     if(w.length === 1) return;
 
-    // ★連続語処理
     let { base, count } = extractRepeats(w);
     let word = base;
 
-    // ★揺らぎ統一
     if(NORMALIZE[word]) word = NORMALIZE[word];
-
-    // ★ストップワード除去
     if(STOP_WORDS.includes(word)) return;
 
     if(!words[word]){
@@ -130,16 +135,13 @@ function processText(text){
       };
     }
 
-    // ★回数まとめて加算
     words[word].count += count;
 
-    // ★重み（優遇あり）
     let boost = BOOST.includes(word) ? 2 : 1;
     words[word].weight = words[word].count * boost;
 
     current.push(word);
 
-    // ★表示は1回だけ
     flow.push({
       text:word,
       x:canvas.width,
@@ -150,7 +152,6 @@ function processText(text){
     });
   });
 
-  // 共起
   current.forEach(a=>{
     current.forEach(b=>{
       if(a!==b){
@@ -160,7 +161,6 @@ function processText(text){
     });
   });
 
-  // 上限管理
   if(Object.keys(words).length > 30){
     let sorted = Object.entries(words).sort((a,b)=>a[1].weight-b[1].weight);
     delete words[sorted[0][0]];
