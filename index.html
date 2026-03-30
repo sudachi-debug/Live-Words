@@ -7,22 +7,57 @@
 <style>
 body {
   margin: 0;
-  font-family: sans-serif;
-  background: #f8f9fb;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f5f7fb;
   overflow: hidden;
 }
 
+/* UIパネル */
 #ui {
   position: fixed;
-  top: 10px;
-  left: 10px;
+  top: 15px;
+  left: 15px;
   z-index: 10;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(10px);
+  padding: 12px;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
 
+/* ボタン */
 button {
-  font-size: 16px;
-  padding: 10px;
-  margin-right: 5px;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 3px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+}
+
+/* ボタン色 */
+.start { background: #51cf66; }
+.stop { background: #ff6b6b; }
+.toggle { background: #4dabf7; }
+
+/* モード表示 */
+#modeLabel {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fff;
+  display: inline-block;
+}
+
+/* 録音状態 */
+#status {
+  font-size: 12px;
+  margin-top: 4px;
+  color: #888;
 }
 
 canvas {
@@ -34,9 +69,12 @@ canvas {
 <body>
 
 <div id="ui">
-  <button onclick="start()">開始</button>
-  <button onclick="stop()">停止</button>
-  <button onclick="toggleMode()">モード切替</button>
+  <button class="start" onclick="start()">開始</button>
+  <button class="stop" onclick="stop()">停止</button>
+  <button class="toggle" onclick="toggleMode()">モード切替</button>
+
+  <div id="modeLabel">モード：ワードフロー</div>
+  <div id="status">停止中</div>
 </div>
 
 <canvas id="canvas"></canvas>
