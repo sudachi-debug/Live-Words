@@ -19,6 +19,8 @@ const BOOST = [
   "憲法","防衛","インフラ","エネルギー","少子化"
 ];
 
+const MIN_COUNT = 2; // ★表示しきい値
+
 // ===== 状態 =====
 let words = {};
 let edges = {};
@@ -26,6 +28,7 @@ let flow = [];
 let mode = "flow";
 let recognition;
 let running = false;
+let lastWord = ""; // ★連続防止
 
 // ===== Canvas =====
 const canvas = document.getElementById("canvas");
@@ -85,7 +88,7 @@ function stop(){
   updateStatus();
 }
 
-// ===== 精度①：日本語分割 =====
+// ===== 日本語分割 =====
 function splitJapanese(text){
   return text
     .replace(/(は|が|を|に|で|と|も|の|へ|や|ね|よ)/g, "$1 ")
@@ -94,7 +97,7 @@ function splitJapanese(text){
     .split(/\s+/);
 }
 
-// ===== 精度②：繰り返し検出 =====
+// ===== 繰り返し検出 =====
 function extractRepeats(word){
   for(let len = 2; len <= word.length/2; len++){
     let unit = word.slice(0, len);
@@ -107,10 +110,7 @@ function extractRepeats(word){
     }
 
     if(count >= 2){
-      return {
-        base: unit,
-        count: count
-      };
+      return { base: unit, count: count };
     }
   }
   return { base: word, count: 1 };
@@ -134,6 +134,10 @@ function processText(text){
     if(NORMALIZE[word]) word = NORMALIZE[word];
     if(STOP_WORDS.includes(word)) return;
 
+    // ★連続防止
+    if(word === lastWord) return;
+    lastWord = word;
+
     if(!words[word]){
       words[word] = {
         count:0,
@@ -149,6 +153,9 @@ function processText(text){
 
     current.push(word);
 
+    // ★表示制限（重要）
+    if(words[word].count < MIN_COUNT) return;
+
     flow.push({
       text:word,
       x:canvas.width,
@@ -157,6 +164,11 @@ function processText(text){
       group:words[word].group,
       t:Math.random()*1000
     });
+
+    // ★flow上限
+    if(flow.length > 40){
+      flow.shift();
+    }
   });
 
   current.forEach(a=>{
