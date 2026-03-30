@@ -1,171 +1,35 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>Live Words 安定版</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音声表示</title>
 
 <style>
-body {
-  margin: 0;
-  background: #000;
-  color: #fff;
-  overflow: hidden;
-  font-family: -apple-system;
+body { font-family: sans-serif; padding: 20px; }
+#result {
+  border: 1px solid #ccc;
+  padding: 15px;
+  min-height: 150px;
+  white-space: pre-wrap;
 }
-
-#controls {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px;
-  z-index: 9999;
-}
-
 button {
-  flex: 1;
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  background: rgba(255,255,255,0.1);
-  color: white;
-}
-
-.word {
-  position: absolute;
-  animation: flow 5s linear forwards;
-}
-
-@keyframes flow {
-  from { right: -100px; }
-  to { right: 110%; }
-}
-
-#network {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  max-height: 30%;
-  overflow-y: auto;
-  background: rgba(0,0,0,0.7);
-  font-size: 12px;
-  display: none;
+  font-size: 18px;
+  padding: 10px;
+  margin: 5px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="controls">
-  <button id="startBtn">開始</button>
-  <button id="stopBtn">停止</button>
-  <button id="toggleBtn">共起</button>
-</div>
+<h2>音声リアルタイム表示</h2>
 
-<div id="network"></div>
+<button onclick="start()">開始</button>
+<button onclick="stop()">停止</button>
 
-<script>
-let recognition = null;
-let running = false;
-let networkOn = false;
-let co = {};
-let history = [];
+<div id="result"></div>
 
-const stopWords = ["えー","あー","その","えっと"];
-
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-if (!SpeechRecognition) {
-  alert("このブラウザは音声認識に対応していません");
-}
-
-document.getElementById("startBtn").addEventListener("click", () => {
-  if (running || !SpeechRecognition) return;
-
-  recognition = new SpeechRecognition();
-
-  recognition.lang = 'ja-JP';
-  recognition.continuous = true;
-  recognition.interimResults = false;
-
-  recognition.onresult = (event) => {
-    try {
-      const text = event.results[event.results.length - 1][0].transcript;
-      const words = text.split(/[\s、。]+/);
-
-      words.forEach(word => {
-        if (!word || stopWords.includes(word)) return;
-
-        showWord(word);
-        updateCo(word);
-      });
-
-      if (networkOn) drawNetwork();
-    } catch(e) {
-      console.log("error", e);
-    }
-  };
-
-  recognition.onend = () => {
-    if (running) {
-      try { recognition.start(); } catch(e) {}
-    }
-  };
-
-  recognition.start();
-  running = true;
-});
-
-document.getElementById("stopBtn").addEventListener("click", () => {
-  running = false;
-  if (recognition) {
-    try { recognition.stop(); } catch(e) {}
-  }
-});
-
-document.getElementById("toggleBtn").addEventListener("click", () => {
-  networkOn = !networkOn;
-  document.getElementById("network").style.display = networkOn ? "block" : "none";
-});
-
-function showWord(word) {
-  const el = document.createElement("div");
-  el.className = "word";
-  el.innerText = word;
-
-  el.style.top = Math.random()*80 + "%";
-  el.style.fontSize = (18 + Math.random()*20) + "px";
-  el.style.color = `hsl(${Math.random()*360}, 90%, 65%)`;
-
-  document.body.appendChild(el);
-  setTimeout(()=>el.remove(),5000);
-}
-
-function updateCo(word) {
-  history.forEach(prev => {
-    const key = prev + "-" + word;
-    co[key] = (co[key] || 0) + 1;
-  });
-
-  history.push(word);
-  if (history.length > 4) history.shift();
-}
-
-function drawNetwork() {
-  const net = document.getElementById("network");
-  net.innerHTML = "";
-
-  Object.entries(co)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,15)
-    .forEach(([k,v])=>{
-      const div = document.createElement("div");
-      div.innerText = k + " (" + v + ")";
-      net.appendChild(div);
-    });
-}
-</script>
+<script src="script.js"></script>
 
 </body>
 </html>
