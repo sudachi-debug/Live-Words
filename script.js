@@ -3,7 +3,7 @@ const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
 
 const STOP_WORDS = [
   "えー","あの","これ","それ","まあ","ちょっと","その","そして",
-  "はい","そう","なるほど","えっと"
+  "はい","そう","なるほど","えっと","です","ます"
 ];
 
 const NORMALIZE = {
@@ -85,11 +85,18 @@ function stop(){
   updateStatus();
 }
 
-// ===== 精度改善：繰り返し検出（強化版） =====
+// ===== 精度①：日本語分割 =====
+function splitJapanese(text){
+  return text
+    .replace(/(は|が|を|に|で|と|も|の|へ|や|ね|よ)/g, "$1 ")
+    .replace(/(する|した|して|いる|なる)/g, "$1 ")
+    .replace(/([ぁ-んァ-ン一-龥]{2,})/g, "$1 ")
+    .split(/\s+/);
+}
+
+// ===== 精度②：繰り返し検出 =====
 function extractRepeats(word){
-
   for(let len = 2; len <= word.length/2; len++){
-
     let unit = word.slice(0, len);
     let count = 0;
     let pos = 0;
@@ -106,13 +113,13 @@ function extractRepeats(word){
       };
     }
   }
-
   return { base: word, count: 1 };
 }
 
 // ===== テキスト処理 =====
 function processText(text){
-  let tokens = text.split(/[、。 ,]/);
+
+  let tokens = splitJapanese(text);
   let current = [];
 
   tokens.forEach(w=>{
