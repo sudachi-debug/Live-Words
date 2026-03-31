@@ -256,7 +256,7 @@ const BOOST = [
   "憲法","防衛","インフラ","エネルギー","少子化"
 ];
 
-const MIN_COUNT = 3; // ★表示しきい値（ファイル解析時は多めに）
+const MIN_COUNT = 2; // ★表示しきい値
 
 // ワード上限をスライダーから取得
 function getMaxWords(){
@@ -282,6 +282,7 @@ let lastWord = ""; // ★連続防止
 // ネットワーク用レイアウトキャッシュ
 let networkNodes = [];
 let networkDirty = true;
+let isFileMode = false; // ファイル解析中フラグ
 
 // ===== Canvas =====
 const canvas = document.getElementById("canvas");
@@ -474,8 +475,9 @@ function processText(text){
 
     current.push(word);
 
-    // ★表示制限（重要）
-    if(words[word].count < MIN_COUNT) return;
+    // ★表示制限（音声:2回、ファイル:3回）
+    const threshold = isFileMode ? 3 : MIN_COUNT;
+    if(words[word].count < threshold) return;
 
     flow.push({
       text:word,
@@ -731,6 +733,7 @@ function loadFile(event){
   reader.onload = (e)=>{
     const text = e.target.result;
 
+    isFileMode = true;
     clearAll();
 
     const chunkSize = 500;
@@ -760,6 +763,7 @@ function clearAll(){
   networkNodes = [];
   networkDirty = true;
   lastWord = "";
+  isFileMode = false;
 }
 function toggleMode(){
   mode = mode==="flow" ? "network" : "flow";
