@@ -1,4 +1,3 @@
-
 <!DOCTYPE html><html lang="ja"><head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -241,8 +240,8 @@ const s = document.getElementById("wordSlider");
 return s ? parseInt(s.value) : 15;
 }
 function onWordSliderChange(){
-const val = document.getElementById(“wordSlider”).value;
-document.getElementById(“wordCount”).textContent = val;
+const val = document.getElementById("wordSlider").value;
+document.getElementById("wordCount").textContent = val;
 networkDirty = true;
 }
 
@@ -250,17 +249,17 @@ networkDirty = true;
 let words = {};
 let edges = {};
 let flow = [];
-let mode = “flow”;
+let mode = "flow";
 let recognition;
 let running = false;
-let lastWord = “”;
+let lastWord = "";
 let networkNodes = [];
 let networkDirty = true;
 let isFileMode = false;
 
 // ===== Canvas =====
-const canvas = document.getElementById(“canvas”);
-const ctx = canvas.getContext(“2d”);
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 function resize(){
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -271,24 +270,24 @@ window.onresize = resize;
 
 // ===== UI =====
 function updateStatus(){
-const dot  = document.getElementById(“dot”);
-const text = document.getElementById(“statusText”);
+const dot  = document.getElementById("dot");
+const text = document.getElementById("statusText");
 if(running){
-dot.className = “active”;
-text.textContent = “Listening…”;
+dot.className = "active";
+text.textContent = "Listening...";
 } else {
-dot.className = “”;
-text.textContent = “停止中”;
+dot.className = "";
+text.textContent = "停止中";
 }
 }
 function updateMode(){
-const btn = document.getElementById(“toggleBtn”);
-if(mode === “flow”){
-btn.textContent = “共起ネットワークON”;
-btn.classList.remove(“active”);
+const btn = document.getElementById("toggleBtn");
+if(mode === "flow"){
+btn.textContent = "共起ネットワークON";
+btn.classList.remove("active");
 } else {
-btn.textContent = “共起ネットワークOFF”;
-btn.classList.add(“active”);
+btn.textContent = "共起ネットワークOFF";
+btn.classList.add("active");
 }
 }
 
@@ -297,24 +296,24 @@ function start(){
 if(running) return;
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 if(!SpeechRecognition){
-alert(“このブラウザは音声認識に対応していません”);
+alert("このブラウザは音声認識に対応していません");
 return;
 }
 recognition = new SpeechRecognition();
-recognition.lang = “ja-JP”;
+recognition.lang = "ja-JP";
 recognition.continuous = true;
 recognition.interimResults = true;
 running = true;
 updateStatus();
 recognition.onresult = (e)=>{
-let text=””;
+let text="";
 for(let i=e.resultIndex;i<e.results.length;i++){
 text += e.results[i][0].transcript;
 }
 processText(text);
 };
 recognition.onerror = (e)=>{
-console.error(“recognition error:”, e.error);
+console.error("recognition error:", e.error);
 running = false;
 updateStatus();
 };
@@ -334,37 +333,37 @@ updateStatus();
 // ===== 日本語分割 =====
 function splitJapanese(text){
 return text
-.replace(/[、。！？!?]/g, “ “)
-.replace(/(は|が|を|に|で|と|の|へ|や|ね|よ|か|な|し)/g, “$1 “)
-.replace(/(する|した|して|している|いる|いた|なる|なった|ある|あった)/g, “$1 “)
-.replace(/(ため|こと|もの|よう|場合|ところ|とき)/g, “ “)
-.replace(/([ぁ-んァ-ンー一-龥ａ-ｚＡ-Ｚa-zA-Z]{2,})/g, “$1 “)
+.replace(/[、。！？!?]/g, " ")
+.replace(/(は|が|を|に|で|と|の|へ|や|ね|よ|か|な|し)/g, "$1 ")
+.replace(/(する|した|して|している|いる|いた|なる|なった|ある|あった)/g, "$1 ")
+.replace(/(ため|こと|もの|よう|場合|ところ|とき)/g, " ")
+.replace(/([ぁ-んァ-ンー一-龥ａ-ｚＡ-Ｚa-zA-Z]{2,})/g, "$1 ")
 .split(/\s+/);
 }
 
 function cleanWord(word){
-word = word.replace(/(されている|されていた|してしまう|してしまった)$/, “”);
-word = word.replace(/(している|していた|されている|してきた|していく)$/, “”);
-word = word.replace(/(できない|できなく|できなくて)$/, “できない”);
-word = word.replace(/(している|していた|してきた)$/, “”);
-word = word.replace(/(する|した|して|され|しな|しに|しく|しい)$/, “”);
-word = word.replace(/(なって|なった|なる|なり)$/, “”);
-word = word.replace(/(あって|あった|ある|あり)$/, “”);
-word = word.replace(/(いって|いった|いく|いき)$/, “”);
-word = word.replace(/(くて|くない|かった|かる|ければ)$/, “い”);
-word = word.replace(/(なくて|なかった|なく)$/, “ない”);
+word = word.replace(/(されている|されていた|してしまう|してしまった)$/, "");
+word = word.replace(/(している|していた|されている|してきた|していく)$/, "");
+word = word.replace(/(できない|できなく|できなくて)$/, "できない");
+word = word.replace(/(している|していた|してきた)$/, "");
+word = word.replace(/(する|した|して|され|しな|しに|しく|しい)$/, "");
+word = word.replace(/(なって|なった|なる|なり)$/, "");
+word = word.replace(/(あって|あった|ある|あり)$/, "");
+word = word.replace(/(いって|いった|いく|いき)$/, "");
+word = word.replace(/(くて|くない|かった|かる|ければ)$/, "い");
+word = word.replace(/(なくて|なかった|なく)$/, "ない");
 for(let i = 0; i < 3; i++){
-word = word.replace(/(が|を|は|に|で|と|も|の|へ|や|か|な|し|く|て|で)$/, “”);
+word = word.replace(/(が|を|は|に|で|と|も|の|へ|や|か|な|し|く|て|で)$/, "");
 }
 return word;
 }
 
 function stemWord(word){
-word = word.replace(/なくて$/, “ない”);
-word = word.replace(/して$/, “する”);
-word = word.replace(/している$/, “する”);
-word = word.replace(/できて$/, “できる”);
-word = word.replace(/くて$/, “い”);
+word = word.replace(/なくて$/, "ない");
+word = word.replace(/して$/, "する");
+word = word.replace(/している$/, "する");
+word = word.replace(/できて$/, "できる");
+word = word.replace(/くて$/, "い");
 if(word.match(/(について|において|に対して|による|に関して)$/)) return null;
 return word;
 }
@@ -396,78 +395,62 @@ w = w.trim();
 if(!w) return;
 if(w.length < MIN_WORD_LEN) return;
 
-```
+
 let { base, count } = extractRepeats(w);
 let word = base;
-
 word = cleanWord(word);
 if(!word) return;
-
 word = stemWord(word);
 if(!word) return;
-
 if(word.length < MIN_WORD_LEN) return;
-
 if(NORMALIZE[word]) word = NORMALIZE[word];
 if(STOP_WORDS.includes(word)) return;
-
 // 連続防止
 if(word === lastWord) return;
 lastWord = word;
-
 if(!words[word]){
-  words[word] = {
-    count: 0,
-    weight: 0,
-    group: Math.floor(Math.random()*COLORS.length)
-  };
+words[word] = {
+count: 0,
+weight: 0,
+group: Math.floor(Math.random()*COLORS.length)
+};
 }
-
 words[word].count += count;
 let boost = BOOST.includes(word) ? 2 : 1;
 words[word].weight = words[word].count * boost;
-
 current.push(word);
-
 // 表示しきい値
 const threshold = isFileMode ? 3 : MIN_COUNT;
 if(words[word].count < threshold) return;
-
 // ★ クールダウンチェック：同じ単語を短時間に何度も流さない
 const lastTime = flowLastAdded[word] || 0;
 if(now - lastTime < FLOW_COOLDOWN_MS) return;
 flowLastAdded[word] = now;
-
 // ★ 既にflow中に同じ単語があればスキップ
 const alreadyInFlow = flow.some(f => f.text === word);
 if(alreadyInFlow) return;
-
 // ★ フォントサイズ：対数スケールで緩やかに成長
 const fontSize = calcFlowFontSize(words[word].weight);
-
 flow.push({
-  text: word,
-  x: canvas.width,
-  y: 80 + Math.random()*(canvas.height - 120),
-  size: fontSize,
-  group: words[word].group,
-  t: Math.random()*1000,
-  opacity: 0
+text: word,
+x: canvas.width,
+y: 80 + Math.random()*(canvas.height - 120),
+size: fontSize,
+group: words[word].group,
+t: Math.random()*1000,
+opacity: 0
 });
-
 if(flow.length > 40){
-  flow.shift();
+flow.shift();
 }
-
 networkDirty = true;
-```
 
 });
 
 current.forEach(a=>{
 current.forEach(b=>{
 if(a!==b){
-let key = a+”_”+b;
+let key = a+"_"+b;
 edges[key] = (edges[key]||0) + 1;
 }
 });
@@ -486,7 +469,7 @@ networkDirty = false;
 let keys = Object.keys(words);
 if(keys.length === 0){ networkNodes = []; return; }
 let maxWords = getMaxWords();
-let sorted = […keys].sort((a,b)=> words[b].weight - words[a].weight);
+let sorted = [...keys].sort((a,b)=> words[b].weight - words[a].weight);
 sorted = sorted.slice(0, maxWords);
 let topCount = Math.min(3, sorted.length);
 let top  = sorted.slice(0, topCount);
@@ -534,7 +517,7 @@ networkNodes = nodes;
 // ===== 描画 =====
 function draw(){
 drawBackground();
-if(mode===“flow”){
+if(mode==="flow"){
 drawFlow();
 } else {
 if(networkDirty) buildNetworkLayout();
@@ -550,43 +533,39 @@ let grad = ctx.createRadialGradient(
 canvas.width*0.5, canvas.height*0.4, 0,
 canvas.width*0.5, canvas.height*0.5, canvas.width*0.8
 );
-grad.addColorStop(0,”#0d1b2a”);
-grad.addColorStop(1,”#060d1a”);
+grad.addColorStop(0,"#0d1b2a");
+grad.addColorStop(1,"#060d1a");
 ctx.fillStyle = grad;
 ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
 function drawFlow(alpha=1){
 const now = Date.now();
-const speed = (parseFloat(document.getElementById(“speedSlider”).value) || 2);
+const speed = (parseFloat(document.getElementById("speedSlider").value) || 2);
 flow.forEach((f,i)=>{
 f.opacity = Math.min(1, (f.opacity||0) + 0.04);
 
-```
+
 // ★ 表示中もweightが増えたらサイズをなめらかに追従（急激な変化を避ける）
 const targetSize = calcFlowFontSize(words[f.text] ? words[f.text].weight : 1);
 f.size = f.size + (targetSize - f.size) * 0.02; // イージング
-
 ctx.globalAlpha = f.opacity * alpha;
 ctx.fillStyle = COLORS[f.group];
 ctx.font = "600 " + Math.round(f.size) + "px 'Noto Sans JP', sans-serif";
 ctx.shadowColor = COLORS[f.group];
 ctx.shadowBlur = 18 + Math.sin(now*0.002 + f.t)*6;
 ctx.fillText(f.text, f.x, f.y);
-
-f.y += Math.sin(now*0.0015 + f.t)*0.4;
-f.x -= speed + f.size*0.02; // ★ size係数も小さく（0.04→0.02）
-
+f.y += Math.sin(now*0.0015 + f.t)0.4;
+f.x -= speed + f.size0.02; // ★ size係数も小さく（0.04→0.02）
 if(f.x < -200){
-  if(fileFlowPool.length > 0){
-    f.x = canvas.width + Math.random()*200;
-    f.y = 120 + Math.random()*(canvas.height - 200);
-    f.opacity = 0;
-  } else {
-    flow.splice(i,1);
-  }
+if(fileFlowPool.length > 0){
+f.x = canvas.width + Math.random()200;
+f.y = 120 + Math.random()(canvas.height - 200);
+f.opacity = 0;
+} else {
+flow.splice(i,1);
 }
-```
+}
 
 });
 ctx.shadowBlur = 0;
@@ -601,8 +580,8 @@ const restNodes= networkNodes.filter(n=>!n.isTop);
 
 topNodes.forEach(center=>{
 restNodes.forEach(node=>{
-let strength = (edges[center.key+”*”+node.key]||0) +
-(edges[node.key+”*”+center.key]||0);
+let strength = (edges[center.key+"*"+node.key]||0) +
+(edges[node.key+"*"+center.key]||0);
 ctx.globalAlpha = Math.min(0.55, 0.1 + strength*0.08);
 let grad = ctx.createLinearGradient(center.x,center.y,node.x,node.y);
 grad.addColorStop(0, COLORS[center.group]);
@@ -619,9 +598,9 @@ ctx.stroke();
 for(let i=0;i<topNodes.length;i++){
 for(let j=i+1;j<topNodes.length;j++){
 let a=topNodes[i], b=topNodes[j];
-let s=(edges[a.key+”*”+b.key]||0)+(edges[b.key+”*”+a.key]||0);
+let s=(edges[a.key+"*"+b.key]||0)+(edges[b.key+"*"+a.key]||0);
 ctx.globalAlpha = Math.min(0.4, 0.15+s*0.05);
-ctx.strokeStyle = “#ff5252”;
+ctx.strokeStyle = "#ff5252";
 ctx.lineWidth   = 1.5;
 ctx.beginPath();
 ctx.moveTo(a.x,a.y);
@@ -635,17 +614,17 @@ restNodes.forEach(node=>{
 let color = COLORS[node.group];
 let pulse = Math.sin(now*0.001 + node.rank)*3;
 ctx.fillStyle  = color;
-ctx.font       = “500 “ + node.size + “px ‘Noto Sans JP’, sans-serif”;
+ctx.font       = "500 " + node.size + "px 'Noto Sans JP', sans-serif";
 ctx.shadowColor= color;
 ctx.shadowBlur = 12 + pulse;
 ctx.fillText(node.key, node.x - ctx.measureText(node.key).width/2, node.y);
 });
 
-const centerColors = [”#ff5252”,”#ffd740”,”#69f0ae”];
+const centerColors = ["#ff5252","#ffd740","#69f0ae"];
 topNodes.forEach((node,i)=>{
 let color = centerColors[i] || COLORS[node.group];
 let pulse = Math.sin(now*0.0008 + i*1.2)*5;
-ctx.font = “900 “ + node.size + “px ‘Noto Sans JP’, sans-serif”;
+ctx.font = "900 " + node.size + "px 'Noto Sans JP', sans-serif";
 let tw   = ctx.measureText(node.key).width;
 ctx.shadowColor = color;
 ctx.shadowBlur  = 40 + pulse;
@@ -653,7 +632,7 @@ ctx.fillStyle   = color;
 ctx.fillText(node.key, node.x - tw/2, node.y);
 ctx.shadowBlur  = 0;
 ctx.globalAlpha = 0.15;
-ctx.fillStyle   = “white”;
+ctx.fillStyle   = "white";
 ctx.fillText(node.key, node.x - tw/2, node.y);
 ctx.globalAlpha = 1;
 });
@@ -672,16 +651,16 @@ isFileMode = true;
 clearAll();
 const chunkSize = 500;
 for(let i = 0; i < text.length; i += chunkSize){
-lastWord = “”;
+lastWord = "";
 processText(text.slice(i, i + chunkSize));
 }
-fileFlowPool = flow.map(f => ({…f}));
-mode = “network”;
+fileFlowPool = flow.map(f => ({...f}));
+mode = "network";
 networkDirty = true;
 updateMode();
 };
-reader.readAsText(file, “UTF-8”);
-event.target.value = “”;
+reader.readAsText(file, "UTF-8");
+event.target.value = "";
 }
 
 function clearAll(){
@@ -691,14 +670,14 @@ flow  = [];
 fileFlowPool = [];
 networkNodes = [];
 networkDirty = true;
-lastWord = “”;
+lastWord = "";
 isFileMode = false;
 // クールダウン記録もリセット
 for(const k in flowLastAdded) delete flowLastAdded[k];
 }
 
 function toggleMode(){
-mode = mode===“flow” ? “network” : “flow”;
+mode = mode==="flow" ? "network" : "flow";
 networkDirty = true;
 updateMode();
 }
@@ -707,16 +686,17 @@ updateStatus();
 updateMode();
 
 function toggleControls(){
-const c = document.getElementById(“controls”);
-const btn = document.getElementById(“toggleControls”);
-if(c.style.display === “none”){
-c.style.display = “block”;
-btn.textContent = “ 表示 “;
+const c = document.getElementById("controls");
+const btn = document.getElementById("toggleControls");
+if(c.style.display === "none"){
+c.style.display = "block";
+btn.textContent = " 表示 ";
 } else {
-c.style.display = “none”;
-btn.textContent = “非表示”;
+c.style.display = "none";
+btn.textContent = "非表示";
 }
 }
 </script></body>
 
 </html>
+
