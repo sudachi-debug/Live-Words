@@ -62,10 +62,10 @@ text.textContent = “停止中”;
 function updateMode(){
 const btn = document.getElementById(“toggleBtn”);
 if(mode === “flow”){
-btn.textContent = “共起ネットワーク”;
+btn.textContent = “ネットワーク”;
 btn.classList.remove(“active”);
 } else {
-btn.textContent = “フロー表示”;
+btn.textContent = “フロー”;
 btn.classList.add(“active”);
 }
 }
