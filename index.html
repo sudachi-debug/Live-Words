@@ -237,7 +237,7 @@ const FLOW_COOLDOWN_MS = 4000; // 同じ単語は4秒以内に再追加しない
 const flowLastAdded = {}; // { word: timestamp }
 
 function getMaxWords(){
-const s = document.getElementById(“wordSlider”);
+const s = document.getElementById("wordSlider");
 return s ? parseInt(s.value) : 15;
 }
 function onWordSliderChange(){
