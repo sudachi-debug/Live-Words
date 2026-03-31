@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -103,7 +104,7 @@
   /* ロゴ */
   #logo {
     position: fixed;
-    top: 10px;
+    top: 70px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 13px;
@@ -112,21 +113,13 @@
     color: rgba(255,255,255,0.12);
     text-transform: uppercase;
     pointer-events: none;
-    z-index: 1;
-  }
-
-  /* 右下スター */
-  #star {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 5;
-    pointer-events: none;
-    opacity: 0.4;
+    z-index: 19;
+    white-space: nowrap;
   }
 
   canvas { display: block; }
 </style>
+
 </head>
 
 <body>
@@ -145,12 +138,9 @@
 
 <div id="logo">Live Words</div>
 
-<svg id="star" width="36" height="36" viewBox="0 0 36 36">
-  <path d="M18 0 L20 16 L36 18 L20 20 L18 36 L16 20 L0 18 L16 16 Z" fill="white"/>
-</svg>
-
 <canvas id="canvas"></canvas>
 
 <script src="script.js"></script>
+
 </body>
 </html>
