@@ -189,28 +189,33 @@
 <body>
 
 <div id="ui">
-  <div id="statusBadge">
-    <span id="dot"></span>
-    <span id="statusText">停止中</span>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div id="statusBadge">
+      <span id="dot"></span>
+      <span id="statusText">停止中</span>
+    </div>
+    <button id="toggleControls" onclick="toggleControls()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 12px;font-size:13px;">⚙️</button>
   </div>
-  <div id="btnGroup">
-    <button class="start"  onclick="start()">開始</button>
-    <button class="stop"   onclick="stop()">停止</button>
-    <button class="toggle" id="toggleBtn" onclick="toggleMode()">共起ネットワークON</button>
-  </div>
-  <div id="btnGroup2">
-    <label id="fileBtn">
-      📄 ファイル解析
-      <input type="file" id="fileInput" accept=".txt" onchange="loadFile(event)" style="display:none;">
-    </label>
-    <button class="clear" onclick="clearAll()">クリア</button>
-  </div>
-  <div id="speedControl">
-    速度
-    <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="2">
-    &nbsp;ワード数
-    <input type="range" id="wordSlider" min="5" max="30" step="1" value="15" oninput="onWordSliderChange()">
-    <span id="wordCount">15</span>
+  <div id="controls">
+    <div id="btnGroup">
+      <button class="start"  onclick="start()">開始</button>
+      <button class="stop"   onclick="stop()">停止</button>
+      <button class="toggle" id="toggleBtn" onclick="toggleMode()">共起ネットワークON</button>
+    </div>
+    <div id="btnGroup2">
+      <label id="fileBtn">
+        📄 ファイル解析
+        <input type="file" id="fileInput" accept=".txt" onchange="loadFile(event)" style="display:none;">
+      </label>
+      <button class="clear" onclick="clearAll()">クリア</button>
+    </div>
+    <div id="speedControl">
+      速度
+      <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="2">
+      &nbsp;ワード数
+      <input type="range" id="wordSlider" min="5" max="30" step="1" value="15" oninput="onWordSliderChange()">
+      <span id="wordCount">15</span>
+    </div>
   </div>
 </div>
 
@@ -774,6 +779,19 @@ function toggleMode(){
 // 初期
 updateStatus();
 updateMode();
+
+// ===== コントロール表示切り替え =====
+function toggleControls(){
+  const c = document.getElementById("controls");
+  const btn = document.getElementById("toggleControls");
+  if(c.style.display === "none"){
+    c.style.display = "block";
+    btn.textContent = "表示";
+  } else {
+    c.style.display = "none";
+    btn.textContent = "非表示";
+  }
+}
 </script>
 
 </body>
