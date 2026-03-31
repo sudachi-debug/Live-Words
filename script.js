@@ -75,6 +75,10 @@ function start(){
 if(running) return;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(!SpeechRecognition){
+alert(“このブラウザは音声認識に対応していません”);
+return;
+}
 recognition = new SpeechRecognition();
 recognition.lang = “ja-JP”;
 recognition.continuous = true;
@@ -89,6 +93,12 @@ for(let i=e.resultIndex;i<e.results.length;i++){
 text += e.results[i][0].transcript;
 }
 processText(text);
+};
+
+recognition.onerror = (e)=>{
+console.error(“recognition error:”, e.error);
+running = false;
+updateStatus();
 };
 
 recognition.onend = ()=>{
