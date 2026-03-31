@@ -1,5 +1,4 @@
 <!DOCTYPE html><html lang="ja"><head>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Words Pro</title><style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
@@ -395,54 +394,68 @@ w = w.trim();
 if(!w) return;
 if(w.length < MIN_WORD_LEN) return;
 
-
 let { base, count } = extractRepeats(w);
 let word = base;
+
 word = cleanWord(word);
 if(!word) return;
+
 word = stemWord(word);
 if(!word) return;
+
 if(word.length < MIN_WORD_LEN) return;
+
 if(NORMALIZE[word]) word = NORMALIZE[word];
 if(STOP_WORDS.includes(word)) return;
+
 // 連続防止
 if(word === lastWord) return;
 lastWord = word;
+
 if(!words[word]){
-words[word] = {
-count: 0,
-weight: 0,
-group: Math.floor(Math.random()*COLORS.length)
-};
+  words[word] = {
+    count: 0,
+    weight: 0,
+    group: Math.floor(Math.random()*COLORS.length)
+  };
 }
+
 words[word].count += count;
 let boost = BOOST.includes(word) ? 2 : 1;
 words[word].weight = words[word].count * boost;
+
 current.push(word);
+
 // 表示しきい値
 const threshold = isFileMode ? 3 : MIN_COUNT;
 if(words[word].count < threshold) return;
+
 // ★ クールダウンチェック：同じ単語を短時間に何度も流さない
 const lastTime = flowLastAdded[word] || 0;
 if(now - lastTime < FLOW_COOLDOWN_MS) return;
 flowLastAdded[word] = now;
+
 // ★ 既にflow中に同じ単語があればスキップ
 const alreadyInFlow = flow.some(f => f.text === word);
 if(alreadyInFlow) return;
+
 // ★ フォントサイズ：対数スケールで緩やかに成長
 const fontSize = calcFlowFontSize(words[word].weight);
+
 flow.push({
-text: word,
-x: canvas.width,
-y: 80 + Math.random()*(canvas.height - 120),
-size: fontSize,
-group: words[word].group,
-t: Math.random()*1000,
-opacity: 0
+  text: word,
+  x: canvas.width,
+  y: 80 + Math.random()*(canvas.height - 120),
+  size: fontSize,
+  group: words[word].group,
+  t: Math.random()*1000,
+  opacity: 0
 });
+
 if(flow.length > 40){
-flow.shift();
+  flow.shift();
 }
+
 networkDirty = true;
 
 });
@@ -545,26 +558,28 @@ const speed = (parseFloat(document.getElementById("speedSlider").value) || 2);
 flow.forEach((f,i)=>{
 f.opacity = Math.min(1, (f.opacity||0) + 0.04);
 
-
 // ★ 表示中もweightが増えたらサイズをなめらかに追従（急激な変化を避ける）
 const targetSize = calcFlowFontSize(words[f.text] ? words[f.text].weight : 1);
 f.size = f.size + (targetSize - f.size) * 0.02; // イージング
+
 ctx.globalAlpha = f.opacity * alpha;
 ctx.fillStyle = COLORS[f.group];
 ctx.font = "600 " + Math.round(f.size) + "px 'Noto Sans JP', sans-serif";
 ctx.shadowColor = COLORS[f.group];
 ctx.shadowBlur = 18 + Math.sin(now*0.002 + f.t)*6;
 ctx.fillText(f.text, f.x, f.y);
-f.y += Math.sin(now*0.0015 + f.t)0.4;
-f.x -= speed + f.size0.02; // ★ size係数も小さく（0.04→0.02）
+
+f.y += Math.sin(now*0.0015 + f.t)*0.4;
+f.x -= speed + f.size*0.02; // ★ size係数も小さく（0.04→0.02）
+
 if(f.x < -200){
-if(fileFlowPool.length > 0){
-f.x = canvas.width + Math.random()200;
-f.y = 120 + Math.random()(canvas.height - 200);
-f.opacity = 0;
-} else {
-flow.splice(i,1);
-}
+  if(fileFlowPool.length > 0){
+    f.x = canvas.width + Math.random()*200;
+    f.y = 120 + Math.random()*(canvas.height - 200);
+    f.opacity = 0;
+  } else {
+    flow.splice(i,1);
+  }
 }
 
 });
@@ -697,6 +712,4 @@ btn.textContent = "非表示";
 }
 }
 </script></body>
-
 </html>
-
