@@ -117,7 +117,36 @@
     white-space: nowrap;
   }
 
-  /* スライダー */
+  #btnGroup2 {
+    display: flex;
+    gap: 6px;
+    background: rgba(6, 13, 26, 0.75);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 6px;
+  }
+
+  #fileBtn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    color: white;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    background: linear-gradient(135deg,#6a1b9a,#ab47bc);
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  #fileBtn:active { transform: scale(0.96); }
+  #fileBtn:hover  { opacity: 0.85; }
+
+  .clear {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15) !important;
+  }
   #speedControl {
     display: flex;
     align-items: center;
@@ -169,9 +198,19 @@
     <button class="stop"   onclick="stop()">停止</button>
     <button class="toggle" id="toggleBtn" onclick="toggleMode()">共起ネットワークON</button>
   </div>
+  <div id="btnGroup2">
+    <label id="fileBtn">
+      📄 ファイル解析
+      <input type="file" id="fileInput" accept=".txt" onchange="loadFile(event)" style="display:none;">
+    </label>
+    <button class="clear" onclick="clearAll()">クリア</button>
+  </div>
   <div id="speedControl">
     速度
     <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="2">
+    &nbsp;ワード数
+    <input type="range" id="wordSlider" min="5" max="30" step="1" value="15" oninput="onWordSliderChange()">
+    <span id="wordCount">15</span>
   </div>
 </div>
 
@@ -184,9 +223,25 @@
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
 
 const STOP_WORDS = [
-  "えー","あの","これ","それ","まあ","ちょっと","その","そして",
-  "はい","そう","なるほど","えっと","です","ます"
+  // フィラー
+  "えー","あの","まあ","ちょっと","えっと","なるほど",
+  // 助詞・助動詞
+  "は","が","を","に","で","と","も","の","へ","や","ね","よ","か","な","けど","から","ので","より","まで","だけ","しか","など","って","たり","ながら",
+  // 活用残骸（cleanWord後に残るもの）
+  "ている","てい","てる","くい","くて","くな","くし","して","した","する","され","なっ","なり","あり","おり","いく","くる","いる","いた","ある","あっ",
+  // 指示語・代名詞
+  "これ","それ","あれ","この","その","あの","ここ","そこ","あそこ","こと","もの","とき","ところ",
+  // 繋ぎ言葉
+  "そして","また","および","さらに","ただし","なお","つまり","すなわち","したがって","しかし","でも","けれど","ところが","一方","なぜなら",
+  // 動詞系
+  "思う","思った","見る","見た","いう","いった","できる","できた","なる","なった",
+  // 形式名詞・補助
+  "です","ます","でした","ました","ません","ない","ため","よう","場合","以上","以下","以外","について","による","において","に関して","に対して",
+  // その他
+  "はい","そう","もう","まず","次に","最後","一つ","二つ","三つ"
 ];
+
+const MIN_WORD_LEN = 2; // 最低文字数（助詞1文字を確実に除外）
 
 const NORMALIZE = {
   "参政":"参政党","参政党":"参政党",
@@ -201,7 +256,19 @@ const BOOST = [
   "憲法","防衛","インフラ","エネルギー","少子化"
 ];
 
-const MIN_COUNT = 2; // ★表示しきい値
+const MIN_COUNT = 3; // ★表示しきい値（ファイル解析時は多めに）
+
+// ワード上限をスライダーから取得
+function getMaxWords(){
+  const s = document.getElementById("wordSlider");
+  return s ? parseInt(s.value) : 15;
+}
+
+function onWordSliderChange(){
+  const val = document.getElementById("wordSlider").value;
+  document.getElementById("wordCount").textContent = val;
+  networkDirty = true; // レイアウト再計算トリガー
+}
 
 // ===== 状態 =====
 let words = {};
@@ -301,10 +368,43 @@ function stop(){
 // ===== 日本語分割 =====
 function splitJapanese(text){
   return text
-    .replace(/(は|が|を|に|で|と|も|の|へ|や|ね|よ)/g, "$1 ")
-    .replace(/(する|した|して|いる|なる)/g, "$1 ")
-    .replace(/([ぁ-んァ-ン一-龥]{2,})/g, "$1 ")
+    .replace(/[、。！？!?]/g, " ")
+    .replace(/(は|が|を|に|で|と|の|へ|や|ね|よ|か|な|し)/g, "$1 ")
+    .replace(/(する|した|して|している|いる|いた|なる|なった|ある|あった)/g, "$1 ")
+    .replace(/(ため|こと|もの|よう|場合|ところ|とき)/g, " ")
+    .replace(/([ぁ-んァ-ンー一-龥ａ-ｚＡ-Ｚa-zA-Z]{2,})/g, "$1 ")
     .split(/\s+/);
+}
+
+// ===== 末尾の助詞・動詞を除去 =====
+function cleanWord(word){
+  // 長い活用形から順に除去
+  word = word.replace(/(されている|されていた|してしまう|してしまった)$/, "");
+  word = word.replace(/(している|していた|されている|してきた|していく)$/, "");
+  word = word.replace(/(できない|できなく|できなくて)$/, "できない");
+  word = word.replace(/(している|していた|してきた)$/, "");
+  word = word.replace(/(する|した|して|され|しな|しに|しく|しい)$/, "");
+  word = word.replace(/(なって|なった|なる|なり)$/, "");
+  word = word.replace(/(あって|あった|ある|あり)$/, "");
+  word = word.replace(/(いって|いった|いく|いき)$/, "");
+  word = word.replace(/(くて|くない|かった|かる|ければ)$/, "い");
+  word = word.replace(/(なくて|なかった|なく)$/, "ない");
+  // 末尾の助詞を除去（複数回）
+  for(let i = 0; i < 3; i++){
+    word = word.replace(/(が|を|は|に|で|と|も|の|へ|や|か|な|し|く|て|で)$/, "");
+  }
+  return word;
+}
+
+// ===== 活用形の正規化（ステミング）=====
+function stemWord(word){
+  word = word.replace(/なくて$/, "ない").replace(/なく$/, "ない");
+  word = word.replace(/して$/, "する").replace(/した$/, "する");
+  word = word.replace(/している$/, "する").replace(/していた$/, "する");
+  word = word.replace(/できて$/, "できる").replace(/できた$/, "できる");
+  word = word.replace(/くて$/, "い").replace(/かった$/, "い");
+  if(word.match(/(について|において|に対して|による|に関して)$/)) return null;
+  return word;
 }
 
 // ===== 繰り返し検出 =====
@@ -336,10 +436,21 @@ function processText(text){
     w = w.trim();
     if(!w) return;
 
-    if(w.length === 1) return;
+    if(w.length < MIN_WORD_LEN) return;
 
     let { base, count } = extractRepeats(w);
     let word = base;
+
+    // 末尾の助詞・動詞を除去
+    word = cleanWord(word);
+    if(!word) return;
+
+    // 活用形正規化
+    word = stemWord(word);
+    if(!word) return;
+
+    // clean後に長さ再チェック
+    if(word.length < MIN_WORD_LEN) return;
 
     if(NORMALIZE[word]) word = NORMALIZE[word];
     if(STOP_WORDS.includes(word)) return;
@@ -370,7 +481,7 @@ function processText(text){
       text:word,
       x:canvas.width,
       y:80 + Math.random()*(canvas.height-120),
-      size:14 + words[word].weight*2,
+      size:10 + words[word].weight*1.2,
       group:words[word].group,
       t:Math.random()*1000,
       opacity:0
@@ -393,7 +504,7 @@ function processText(text){
     });
   });
 
-  if(Object.keys(words).length > 30){
+  if(Object.keys(words).length > getMaxWords()){
     let sorted = Object.entries(words).sort((a,b)=>a[1].weight-b[1].weight);
     delete words[sorted[0][0]];
     networkDirty = true;
@@ -406,7 +517,11 @@ function buildNetworkLayout(){
   let keys = Object.keys(words);
   if(keys.length === 0){ networkNodes = []; return; }
 
-  let sorted   = [...keys].sort((a,b)=> words[b].weight - words[a].weight);
+  // スライダー値でノード数を絞る（ここで効かせる）
+  let maxWords = getMaxWords();
+  let sorted = [...keys].sort((a,b)=> words[b].weight - words[a].weight);
+  sorted = sorted.slice(0, maxWords); // 上位maxWords件のみ
+
   let topCount = Math.min(3, sorted.length);
   let top      = sorted.slice(0, topCount);
   let rest     = sorted.slice(topCount);
@@ -433,16 +548,22 @@ function buildNetworkLayout(){
   });
 
   // 周辺ノード（放射状）
-  let radius = Math.min(canvas.width, canvas.height) * 0.32;
+  let radius = Math.min(canvas.width, canvas.height) * 0.42;
   rest.forEach((k, i)=>{
     let angle = (i / rest.length) * Math.PI * 2 - Math.PI / 2;
     let r = radius * (0.8 + (i % 3) * 0.1);
     let w = words[k];
+    let nx = cx + Math.cos(angle) * r;
+    let ny = cy + Math.sin(angle) * r;
+    // 画面内にクリップ
+    let margin = 60;
+    nx = Math.max(margin, Math.min(canvas.width  - margin, nx));
+    ny = Math.max(margin + 60, Math.min(canvas.height - margin, ny));
     nodes.push({
       key:   k,
-      x:     cx + Math.cos(angle) * r,
-      y:     cy + Math.sin(angle) * r,
-      size:  Math.max(12, 10 + w.weight * 2),
+      x:     nx,
+      y:     ny,
+      size:  Math.max(10, 8 + w.weight * 1.5),
       group: w.group,
       isTop: false,
       rank:  topCount + i
@@ -460,7 +581,7 @@ function draw(){
     drawFlow();
   }else{
     if(networkDirty) buildNetworkLayout();
-    drawFlow(0.07);
+    drawFlow(0.002);
     drawNetwork();
   }
 
@@ -483,6 +604,7 @@ function drawBackground(){
 // ===== フロー =====
 function drawFlow(alpha=1){
   const now = Date.now();
+  const speed = (parseFloat(document.getElementById("speedSlider").value) || 2);
 
   flow.forEach((f,i)=>{
     f.opacity = Math.min(1, (f.opacity||0) + 0.04);
@@ -494,13 +616,20 @@ function drawFlow(alpha=1){
     ctx.shadowColor = COLORS[f.group];
     ctx.shadowBlur = 18 + Math.sin(now*0.002 + f.t)*6;
 
-    ctx.fillText(f.text,f.x,f.y);
+    ctx.fillText(f.text, f.x, f.y);
 
     f.y += Math.sin(now*0.0015 + f.t)*0.4;
-    f.x -= (parseFloat(document.getElementById("speedSlider").value) || 2) + f.size*0.04;
+    f.x -= speed + f.size*0.04;
 
+    // 画面外に出たらループ（ファイル読み込み時）or 削除（音声時）
     if(f.x < -200){
-      flow.splice(i,1);
+      if(fileFlowPool.length > 0){
+        f.x = canvas.width + Math.random()*200;
+        f.y = 120 + Math.random()*(canvas.height - 200);
+        f.opacity = 0;
+      } else {
+        flow.splice(i,1);
+      }
     }
   });
 
@@ -591,7 +720,47 @@ function drawNetwork(){
   ctx.shadowBlur = 0;
 }
 
-// ===== モード =====
+// ===== ファイル読み込み =====
+let fileFlowPool = []; // ループ用のflowプール
+
+function loadFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const text = e.target.result;
+
+    clearAll();
+
+    const chunkSize = 500;
+    for(let i = 0; i < text.length; i += chunkSize){
+      lastWord = "";
+      processText(text.slice(i, i + chunkSize));
+    }
+
+    // flowをループ用プールにコピー
+    fileFlowPool = flow.map(f => ({...f}));
+
+    // 共起ネットワークモードに自動切替
+    mode = "network";
+    networkDirty = true;
+    updateMode();
+  };
+  reader.readAsText(file, "UTF-8");
+  event.target.value = "";
+}
+
+// ===== クリア =====
+function clearAll(){
+  words = {};
+  edges = {};
+  flow  = [];
+  fileFlowPool = [];
+  networkNodes = [];
+  networkDirty = true;
+  lastWord = "";
+}
 function toggleMode(){
   mode = mode==="flow" ? "network" : "flow";
   networkDirty = true;
