@@ -117,6 +117,41 @@
     white-space: nowrap;
   }
 
+  /* スライダー */
+  #speedControl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(6, 13, 26, 0.75);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 8px 14px;
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  #speedSlider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 90px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.2);
+    outline: none;
+  }
+  #speedSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #2979ff;
+    cursor: pointer;
+    box-shadow: 0 0 6px #2979ff88;
+  }
+
   canvas { display: block; }
 </style>
 
@@ -132,7 +167,11 @@
   <div id="btnGroup">
     <button class="start"  onclick="start()">開始</button>
     <button class="stop"   onclick="stop()">停止</button>
-    <button class="toggle" id="toggleBtn" onclick="toggleMode()">ネットワーク</button>
+    <button class="toggle" id="toggleBtn" onclick="toggleMode()">共起ネットワークON</button>
+  </div>
+  <div id="speedControl">
+    速度
+    <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="2">
   </div>
 </div>
 
@@ -205,10 +244,10 @@ function updateStatus(){
 function updateMode(){
   const btn = document.getElementById("toggleBtn");
   if(mode === "flow"){
-    btn.textContent = "ネットワーク";
+    btn.textContent = "共起ネットワークON";
     btn.classList.remove("active");
   } else {
-    btn.textContent = "フロー";
+    btn.textContent = "共起ネットワークOFF";
     btn.classList.add("active");
   }
 }
@@ -450,7 +489,7 @@ function drawFlow(alpha=1){
 
     ctx.globalAlpha = f.opacity * alpha;
     ctx.fillStyle = COLORS[f.group];
-    ctx.font = `600 ${f.size}px 'Noto Sans JP', sans-serif`;
+    ctx.font = "600 " + f.size + "px 'Noto Sans JP', sans-serif";
 
     ctx.shadowColor = COLORS[f.group];
     ctx.shadowBlur = 18 + Math.sin(now*0.002 + f.t)*6;
@@ -458,7 +497,7 @@ function drawFlow(alpha=1){
     ctx.fillText(f.text,f.x,f.y);
 
     f.y += Math.sin(now*0.0015 + f.t)*0.4;
-    f.x -= 1.8 + f.size*0.04;
+    f.x -= (parseFloat(document.getElementById("speedSlider").value) || 2) + f.size*0.04;
 
     if(f.x < -200){
       flow.splice(i,1);
@@ -521,7 +560,7 @@ function drawNetwork(){
     let pulse = Math.sin(now*0.001 + node.rank)*3;
 
     ctx.fillStyle  = color;
-    ctx.font       = `500 ${node.size}px 'Noto Sans JP', sans-serif`;
+    ctx.font       = "500 " + node.size + "px 'Noto Sans JP', sans-serif";
     ctx.shadowColor= color;
     ctx.shadowBlur = 12 + pulse;
 
@@ -534,7 +573,7 @@ function drawNetwork(){
     let color = centerColors[i] || COLORS[node.group];
     let pulse = Math.sin(now*0.0008 + i*1.2)*5;
 
-    ctx.font = `900 ${node.size}px 'Noto Sans JP', sans-serif`;
+    ctx.font = "900 " + node.size + "px 'Noto Sans JP', sans-serif";
     let tw   = ctx.measureText(node.key).width;
 
     ctx.shadowColor = color;
@@ -562,7 +601,6 @@ function toggleMode(){
 // 初期
 updateStatus();
 updateMode();
-
 </script>
 
 </body>
