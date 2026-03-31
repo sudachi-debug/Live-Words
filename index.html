@@ -5,54 +5,149 @@
 <title>Live Words Pro</title>
 
 <style>
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  overflow: hidden;
-}
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
 
-#ui {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  z-index: 10;
-  background: rgba(0,0,0,0.4);
-  backdrop-filter: blur(10px);
-  padding: 12px;
-  border-radius: 14px;
-  color: white;
-}
+  * { box-sizing: border-box; }
 
-button {
-  border: none;
-  border-radius: 10px;
-  padding: 10px;
-  margin: 3px;
-  font-size: 14px;
-  color: white;
-}
+  body {
+    margin: 0;
+    background: #060d1a;
+    font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+  }
 
-.start { background: #00c853; }
-.stop { background: #ff5252; }
-.toggle { background: #2979ff; }
+  /* ===== UI パネル ===== */
+  #ui {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
 
-#status { font-size: 12px; margin-top: 5px; }
-#modeLabel { font-size: 13px; margin-top: 5px; }
+  /* ステータスバッジ */
+  #statusBadge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(6, 13, 26, 0.75);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    padding: 8px 16px;
+    color: rgba(255,255,255,0.85);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    min-width: 160px;
+  }
 
-canvas { display:block; }
+  #dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #555;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  #dot.active {
+    background: #00e676;
+    box-shadow: 0 0 8px #00e676, 0 0 20px #00e67688;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 8px #00e676, 0 0 20px #00e67688; }
+    50%      { box-shadow: 0 0 4px #00e676, 0 0 10px #00e67644; }
+  }
+
+  /* ボタングループ */
+  #btnGroup {
+    display: flex;
+    gap: 6px;
+    background: rgba(6, 13, 26, 0.75);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 6px;
+  }
+
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    color: white;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  button:active { transform: scale(0.96); }
+  button:hover  { opacity: 0.85; }
+
+  .start  { background: linear-gradient(135deg,#00c853,#00e676); }
+  .stop   { background: linear-gradient(135deg,#d50000,#ff1744); }
+  .toggle {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .toggle.active {
+    background: linear-gradient(135deg,#1565c0,#2979ff);
+    border-color: transparent;
+  }
+
+  /* ロゴ */
+  #logo {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.12);
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* 右下スター */
+  #star {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0.4;
+  }
+
+  canvas { display: block; }
 </style>
 </head>
 
 <body>
 
 <div id="ui">
-  <button class="start" onclick="start()">開始</button>
-  <button class="stop" onclick="stop()">停止</button>
-  <button class="toggle" onclick="toggleMode()">モード切替</button>
-
-  <div id="modeLabel">モード：フロー</div>
-  <div id="status">停止中</div>
+  <div id="statusBadge">
+    <span id="dot"></span>
+    <span id="statusText">停止中</span>
+  </div>
+  <div id="btnGroup">
+    <button class="start"  onclick="start()">開始</button>
+    <button class="stop"   onclick="stop()">停止</button>
+    <button class="toggle" id="toggleBtn" onclick="toggleMode()">ネットワーク</button>
+  </div>
 </div>
+
+<div id="logo">Live Words</div>
+
+<svg id="star" width="36" height="36" viewBox="0 0 36 36">
+  <path d="M18 0 L20 16 L36 18 L20 20 L18 36 L16 20 L0 18 L16 16 Z" fill="white"/>
+</svg>
 
 <canvas id="canvas"></canvas>
 
