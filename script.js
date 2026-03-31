@@ -71,7 +71,7 @@ btn.classList.add(“active”);
 }
 
 // ===== 音声 =====
-function startRecognition(){
+function start(){
 if(running) return;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -100,7 +100,7 @@ if(running) recognition.start();
 recognition.start();
 }
 
-function stopRecognition(){
+function stop(){
 running = false;
 if(recognition) recognition.stop();
 updateStatus();
