@@ -1,10 +1,13 @@
-<!DOCTYPE html><html lang="ja"><head><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE html><html lang="ja"><head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Words Pro</title><style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');	∙	{ box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+  * { box-sizing: border-box; }
 body {
 margin: 0;
 background: #060d1a;
-font-family: ‘Noto Sans JP’, -apple-system, BlinkMacSystemFont, sans-serif;
+font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
 overflow: hidden;
 }
 /* ===== UI パネル ===== */
@@ -193,38 +196,45 @@ canvas { display: block; }
 </div><div id="logo">Live Words</div><canvas id="canvas"></canvas>
 <script>
 // ===== 設定 =====
-const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];const STOP_WORDS = [
-// フィラー
-“えー”,“あの”,“まあ”,“ちょっと”,“えっと”,“なるほど”,
-// 助詞・助動詞
-“は”,“が”,“を”,“に”,“で”,“と”,“も”,“の”,“へ”,“や”,“ね”,“よ”,“か”,“な”,“けど”,“から”,“ので”,“より”,“まで”,“だけ”,“しか”,“など”,“って”,“たり”,“ながら”,
-// 活用残骸（cleanWord後に残るもの）
-“ている”,“てい”,“てる”,“くい”,“くて”,“くな”,“くし”,“して”,“した”,“する”,“され”,“なっ”,“なり”,“あり”,“おり”,“いく”,“くる”,“いる”,“いた”,“ある”,“あっ”,
-// 指示語・代名詞
-“これ”,“それ”,“あれ”,“この”,“その”,“あの”,“ここ”,“そこ”,“あそこ”,“こと”,“もの”,“とき”,“ところ”,
-// 繋ぎ言葉
-“そして”,“また”,“および”,“さらに”,“ただし”,“なお”,“つまり”,“すなわち”,“したがって”,“しかし”,“でも”,“けれど”,“ところが”,“一方”,“なぜなら”,
-// 動詞系
-“思う”,“思った”,“見る”,“見た”,“いう”,“いった”,“できる”,“できた”,“なる”,“なった”,
-// 形式名詞・補助
-“です”,“ます”,“でした”,“ました”,“ません”,“ない”,“ため”,“よう”,“場合”,“以上”,“以下”,“以外”,“について”,“による”,“において”,“に関して”,“に対して”,
-// その他
-“はい”,“そう”,“もう”,“まず”,“次に”,“最後”,“一つ”,“二つ”,“三つ”
+const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
+const STOP_WORDS = [
+  "えー","あの","まあ","ちょっと","えっと","なるほど",
+  "は","が","を","に","で","と","も","の","へ","や","ね","よ","か","な","けど","から","ので","より","まで","だけ","しか","など","って","たり","ながら",
+  "ている","てい","てる","くい","くて","くな","くし","して","した","する","され","なっ","なり","あり","おり","いく","くる","いる","いた","ある","あっ",
+  "これ","それ","あれ","この","その","あの","ここ","そこ","あそこ","こと","もの","とき","ところ",
+  "そして","また","および","さらに","ただし","なお","つまり","すなわち","したがって","しかし","でも","けれど","ところが","一方","なぜなら",
+  "思う","思った","見る","見た","いう","いった","できる","できた","なる","なった",
+  "です","ます","でした","ました","ません","ない","ため","よう","場合","以上","以下","以外","について","による","において","に関して","に対して",
+  "はい","そう","もう","まず","次に","最後","一つ","二つ","三つ"
 ];
-const MIN_WORD_LEN = 2; // 最低文字数（助詞1文字を確実に除外）
+const MIN_WORD_LEN = 2;
 const NORMALIZE = {
-“参政”:“参政党”,“参政党”:“参政党”,
-“立憲”:“立憲民主党”,“立憲民主党”:“立憲民主党”,
-“中道”:“中道改革連合”,“中道改革”:“中道改革連合”,
-“自民”:“自由民主党”,“自民党”:“自由民主党”,
-“維新”:“日本維新の会”
+  "参政":"参政党","参政党":"参政党",
+  "立憲":"立憲民主党","立憲民主党":"立憲民主党",
+  "中道":"中道改革連合","中道改革":"中道改革連合",
+  "自民":"自由民主党","自民党":"自由民主党",
+  "維新":"日本維新の会"
 };
 const BOOST = [
-“減税”,“教育”,“安全保障”,“子育て”,“経済”,“外交”,
-“憲法”,“防衛”,“インフラ”,“エネルギー”,“少子化”
+  "減税","教育","安全保障","子育て","経済","外交",
+  "憲法","防衛","インフラ","エネルギー","少子化"
 ];
-const MIN_COUNT = 2; // ★表示しきい値
-// ワード上限をスライダーから取得
+const MIN_COUNT = 2;
+
+// ★ フロー文字サイズ：緩やかな上限付き計算
+// weight が増えても対数的に大きくなり、最大 MAX_FONT_SIZE を超えない
+const BASE_FONT_SIZE = 14;   // 最小サイズ
+const MAX_FONT_SIZE  = 42;   // 最大サイズ（★画面内に収まる上限）
+function calcFlowFontSize(weight) {
+// log スケールで緩やかに成長（weight=1→14px, weight=10→28px, weight=50→42px）
+const size = BASE_FONT_SIZE + Math.log1p(weight) * 6.5;
+return Math.min(size, MAX_FONT_SIZE);
+}
+
+// ★ flow への追加クールダウン（単語ごとに最後に追加した時刻を記録）
+const FLOW_COOLDOWN_MS = 4000; // 同じ単語は4秒以内に再追加しない
+const flowLastAdded = {}; // { word: timestamp }
+
 function getMaxWords(){
 const s = document.getElementById(“wordSlider”);
 return s ? parseInt(s.value) : 15;
@@ -232,8 +242,9 @@ return s ? parseInt(s.value) : 15;
 function onWordSliderChange(){
 const val = document.getElementById(“wordSlider”).value;
 document.getElementById(“wordCount”).textContent = val;
-networkDirty = true; // レイアウト再計算トリガー
+networkDirty = true;
 }
+
 // ===== 状態 =====
 let words = {};
 let edges = {};
@@ -241,11 +252,11 @@ let flow = [];
 let mode = “flow”;
 let recognition;
 let running = false;
-let lastWord = “”; // ★連続防止
-// ネットワーク用レイアウトキャッシュ
+let lastWord = “”;
 let networkNodes = [];
 let networkDirty = true;
-let isFileMode = false; // ファイル解析中フラグ
+let isFileMode = false;
+
 // ===== Canvas =====
 const canvas = document.getElementById(“canvas”);
 const ctx = canvas.getContext(“2d”);
@@ -256,6 +267,7 @@ networkDirty = true;
 }
 resize();
 window.onresize = resize;
+
 // ===== UI =====
 function updateStatus(){
 const dot  = document.getElementById(“dot”);
@@ -278,6 +290,7 @@ btn.textContent = “共起ネットワークOFF”;
 btn.classList.add(“active”);
 }
 }
+
 // ===== 音声 =====
 function start(){
 if(running) return;
@@ -316,6 +329,7 @@ running = false;
 if(recognition) recognition.stop();
 updateStatus();
 }
+
 // ===== 日本語分割 =====
 function splitJapanese(text){
 return text
@@ -326,9 +340,8 @@ return text
 .replace(/([ぁ-んァ-ンー一-龥ａ-ｚＡ-Ｚa-zA-Z]{2,})/g, “$1 “)
 .split(/\s+/);
 }
-// ===== 末尾の助詞・動詞を除去 =====
+
 function cleanWord(word){
-// 長い活用形から順に除去
 word = word.replace(/(されている|されていた|してしまう|してしまった)$/, “”);
 word = word.replace(/(している|していた|されている|してきた|していく)$/, “”);
 word = word.replace(/(できない|できなく|できなくて)$/, “できない”);
@@ -339,28 +352,28 @@ word = word.replace(/(あって|あった|ある|あり)$/, “”);
 word = word.replace(/(いって|いった|いく|いき)$/, “”);
 word = word.replace(/(くて|くない|かった|かる|ければ)$/, “い”);
 word = word.replace(/(なくて|なかった|なく)$/, “ない”);
-// 末尾の助詞を除去（複数回）
 for(let i = 0; i < 3; i++){
 word = word.replace(/(が|を|は|に|で|と|も|の|へ|や|か|な|し|く|て|で)$/, “”);
 }
 return word;
 }
-// ===== 活用形の正規化（ステミング）=====
+
 function stemWord(word){
-word = word.replace(/なくて￼/, “ない”);
-word = word.replace(/して￼/, “する”);
-word = word.replace(/している￼/, “する”);
-word = word.replace(/できて￼/, “できる”);
-word = word.replace(/くて￼/, “い”);
+word = word.replace(/なくて$/, “ない”);
+word = word.replace(/して$/, “する”);
+word = word.replace(/している$/, “する”);
+word = word.replace(/できて$/, “できる”);
+word = word.replace(/くて$/, “い”);
 if(word.match(/(について|において|に対して|による|に関して)$/)) return null;
 return word;
 }
-// ===== 繰り返し検出 =====
+
 function extractRepeats(word){
 for(let len = 2; len <= word.length/2; len++){
 let unit = word.slice(0, len);
 let count = 0;
-let pos = 0;while(word.slice(pos, pos + len) === unit){
+let pos = 0;
+while(word.slice(pos, pos + len) === unit){
 count++;
 pos += len;
 }
@@ -370,88 +383,116 @@ return { base: unit, count: count };
 }
 return { base: word, count: 1 };
 }
+
 // ===== テキスト処理 =====
 function processText(text){
 let tokens = splitJapanese(text);
 let current = [];
+const now = Date.now();
+
 tokens.forEach(w=>{
 w = w.trim();
 if(!w) return;
 if(w.length < MIN_WORD_LEN) return;
+
+```
 let { base, count } = extractRepeats(w);
 let word = base;
-// 末尾の助詞・動詞を除去
+
 word = cleanWord(word);
 if(!word) return;
-// 活用形正規化
+
 word = stemWord(word);
 if(!word) return;
-// clean後に長さ再チェック
+
 if(word.length < MIN_WORD_LEN) return;
+
 if(NORMALIZE[word]) word = NORMALIZE[word];
 if(STOP_WORDS.includes(word)) return;
-// ★連続防止
+
+// 連続防止
 if(word === lastWord) return;
 lastWord = word;
+
 if(!words[word]){
-words[word] = {
-count:0,
-weight:0,
-group: Math.floor(Math.random()*COLORS.length)
-};
+  words[word] = {
+    count: 0,
+    weight: 0,
+    group: Math.floor(Math.random()*COLORS.length)
+  };
 }
+
 words[word].count += count;
 let boost = BOOST.includes(word) ? 2 : 1;
 words[word].weight = words[word].count * boost;
+
 current.push(word);
-// ★表示制限（音声:2回、ファイル:3回）
+
+// 表示しきい値
 const threshold = isFileMode ? 3 : MIN_COUNT;
 if(words[word].count < threshold) return;
+
+// ★ クールダウンチェック：同じ単語を短時間に何度も流さない
+const lastTime = flowLastAdded[word] || 0;
+if(now - lastTime < FLOW_COOLDOWN_MS) return;
+flowLastAdded[word] = now;
+
+// ★ 既にflow中に同じ単語があればスキップ
+const alreadyInFlow = flow.some(f => f.text === word);
+if(alreadyInFlow) return;
+
+// ★ フォントサイズ：対数スケールで緩やかに成長
+const fontSize = calcFlowFontSize(words[word].weight);
+
 flow.push({
-text:word,
-x:canvas.width,
-y:80 + Math.random()(canvas.height-120),
-size:10 + words[word].weight1.2,
-group:words[word].group,
-t:Math.random()*1000,
-opacity:0
+  text: word,
+  x: canvas.width,
+  y: 80 + Math.random()*(canvas.height - 120),
+  size: fontSize,
+  group: words[word].group,
+  t: Math.random()*1000,
+  opacity: 0
 });
-// ★flow上限
+
 if(flow.length > 40){
-flow.shift();
+  flow.shift();
 }
+
 networkDirty = true;
+```
+
 });
+
 current.forEach(a=>{
 current.forEach(b=>{
 if(a!==b){
-let key=a+”_”+b;
-edges[key]=(edges[key]||0)+1;
+let key = a+”_”+b;
+edges[key] = (edges[key]||0) + 1;
 }
 });
 });
+
 if(Object.keys(words).length > getMaxWords()){
-let sorted = Object.entries(words).sort((a,b)=>a[1].weight-b[1].weight);
+let sorted = Object.entries(words).sort((a,b)=>a[1].weight - b[1].weight);
 delete words[sorted[0][0]];
 networkDirty = true;
 }
 }
-// ===== ネットワークレイアウト計算 =====
+
+// ===== ネットワークレイアウト =====
 function buildNetworkLayout(){
 networkDirty = false;
 let keys = Object.keys(words);
 if(keys.length === 0){ networkNodes = []; return; }
-// スライダー値でノード数を絞る（ここで効かせる）
 let maxWords = getMaxWords();
 let sorted = […keys].sort((a,b)=> words[b].weight - words[a].weight);
-sorted = sorted.slice(0, maxWords); // 上位maxWords件のみ
+sorted = sorted.slice(0, maxWords);
 let topCount = Math.min(3, sorted.length);
-let top      = sorted.slice(0, topCount);
-let rest     = sorted.slice(topCount);
+let top  = sorted.slice(0, topCount);
+let rest = sorted.slice(topCount);
 let cx = canvas.width  / 2;
 let cy = canvas.height / 2;
 let nodes = [];
-// 中心ノード群（縦に並べる）
 let centerSpacing = 65;
 let centerStartY  = cy - (centerSpacing * (topCount - 1)) / 2;
 top.forEach((k, i)=>{
@@ -466,7 +507,6 @@ isTop: true,
 rank:  i
 });
 });
-// 周辺ノード（放射状）
 let radius = Math.min(canvas.width, canvas.height) * 0.42;
 rest.forEach((k, i)=>{
 let angle = (i / rest.length) * Math.PI * 2 - Math.PI / 2;
@@ -474,7 +514,6 @@ let r = radius * (0.8 + (i % 3) * 0.1);
 let w = words[k];
 let nx = cx + Math.cos(angle) * r;
 let ny = cy + Math.sin(angle) * r;
-// 画面内にクリップ
 let margin = 60;
 nx = Math.max(margin, Math.min(canvas.width  - margin, nx));
 ny = Math.max(margin + 60, Math.min(canvas.height - margin, ny));
@@ -490,12 +529,13 @@ rank:  topCount + i
 });
 networkNodes = nodes;
 }
+
 // ===== 描画 =====
 function draw(){
 drawBackground();
 if(mode===“flow”){
 drawFlow();
-}else{
+} else {
 if(networkDirty) buildNetworkLayout();
 drawFlow(0.002);
 drawNetwork();
@@ -503,56 +543,65 @@ drawNetwork();
 requestAnimationFrame(draw);
 }
 draw();
-// ===== 背景 =====
+
 function drawBackground(){
 let grad = ctx.createRadialGradient(
-canvas.width0.5, canvas.height0.4, 0,
-canvas.width0.5, canvas.height0.5, canvas.width*0.8
+canvas.width*0.5, canvas.height*0.4, 0,
+canvas.width*0.5, canvas.height*0.5, canvas.width*0.8
 );
 grad.addColorStop(0,”#0d1b2a”);
 grad.addColorStop(1,”#060d1a”);
 ctx.fillStyle = grad;
 ctx.fillRect(0,0,canvas.width,canvas.height);
 }
-// ===== フロー =====
+
 function drawFlow(alpha=1){
 const now = Date.now();
 const speed = (parseFloat(document.getElementById(“speedSlider”).value) || 2);
 flow.forEach((f,i)=>{
 f.opacity = Math.min(1, (f.opacity||0) + 0.04);
+
+```
+// ★ 表示中もweightが増えたらサイズをなめらかに追従（急激な変化を避ける）
+const targetSize = calcFlowFontSize(words[f.text] ? words[f.text].weight : 1);
+f.size = f.size + (targetSize - f.size) * 0.02; // イージング
+
 ctx.globalAlpha = f.opacity * alpha;
 ctx.fillStyle = COLORS[f.group];
-ctx.font = “600 “ + f.size + “px ‘Noto Sans JP’, sans-serif”;
+ctx.font = "600 " + Math.round(f.size) + "px 'Noto Sans JP', sans-serif";
 ctx.shadowColor = COLORS[f.group];
 ctx.shadowBlur = 18 + Math.sin(now*0.002 + f.t)*6;
 ctx.fillText(f.text, f.x, f.y);
-f.y += Math.sin(now*0.0015 + f.t)0.4;
-f.x -= speed + f.size0.04;
-// 画面外に出たらループ（ファイル読み込み時）or 削除（音声時）
+
+f.y += Math.sin(now*0.0015 + f.t)*0.4;
+f.x -= speed + f.size*0.02; // ★ size係数も小さく（0.04→0.02）
+
 if(f.x < -200){
-if(fileFlowPool.length > 0){
-f.x = canvas.width + Math.random()200;
-f.y = 120 + Math.random()(canvas.height - 200);
-f.opacity = 0;
-} else {
-flow.splice(i,1);
+  if(fileFlowPool.length > 0){
+    f.x = canvas.width + Math.random()*200;
+    f.y = 120 + Math.random()*(canvas.height - 200);
+    f.opacity = 0;
+  } else {
+    flow.splice(i,1);
+  }
 }
-}
+```
+
 });
 ctx.shadowBlur = 0;
 ctx.globalAlpha = 1;
 }
-// ===== ネットワーク =====
+
 function drawNetwork(){
 if(networkNodes.length === 0) return;
 const now      = Date.now();
 const topNodes = networkNodes.filter(n=>n.isTop);
 const restNodes= networkNodes.filter(n=>!n.isTop);
-// ===== エッジ =====
+
 topNodes.forEach(center=>{
 restNodes.forEach(node=>{
-let strength = (edges[center.key+””+node.key]||0) +
-(edges[node.key+””+center.key]||0);
+let strength = (edges[center.key+”*”+node.key]||0) +
+(edges[node.key+”*”+center.key]||0);
 ctx.globalAlpha = Math.min(0.55, 0.1 + strength*0.08);
 let grad = ctx.createLinearGradient(center.x,center.y,node.x,node.y);
 grad.addColorStop(0, COLORS[center.group]);
@@ -565,12 +614,12 @@ ctx.lineTo(node.x,   node.y);
 ctx.stroke();
 });
 });
-// top同士のエッジ
+
 for(let i=0;i<topNodes.length;i++){
 for(let j=i+1;j<topNodes.length;j++){
 let a=topNodes[i], b=topNodes[j];
-let s=(edges[a.key+””+b.key]||0)+(edges[b.key+””+a.key]||0);
-ctx.globalAlpha = Math.min(0.4, 0.15+s0.05);
+let s=(edges[a.key+”*”+b.key]||0)+(edges[b.key+”*”+a.key]||0);
+ctx.globalAlpha = Math.min(0.4, 0.15+s*0.05);
 ctx.strokeStyle = “#ff5252”;
 ctx.lineWidth   = 1.5;
 ctx.beginPath();
@@ -580,21 +629,21 @@ ctx.stroke();
 }
 }
 ctx.globalAlpha = 1;
-// ===== 周辺ノード =====
+
 restNodes.forEach(node=>{
 let color = COLORS[node.group];
-let pulse = Math.sin(now0.001 + node.rank)*3;
+let pulse = Math.sin(now*0.001 + node.rank)*3;
 ctx.fillStyle  = color;
 ctx.font       = “500 “ + node.size + “px ‘Noto Sans JP’, sans-serif”;
 ctx.shadowColor= color;
 ctx.shadowBlur = 12 + pulse;
 ctx.fillText(node.key, node.x - ctx.measureText(node.key).width/2, node.y);
 });
-// ===== 中心ノード =====
+
 const centerColors = [”#ff5252”,”#ffd740”,”#69f0ae”];
 topNodes.forEach((node,i)=>{
 let color = centerColors[i] || COLORS[node.group];
-let pulse = Math.sin(now0.0008 + i1.2)*5;
+let pulse = Math.sin(now*0.0008 + i*1.2)*5;
 ctx.font = “900 “ + node.size + “px ‘Noto Sans JP’, sans-serif”;
 let tw   = ctx.measureText(node.key).width;
 ctx.shadowColor = color;
@@ -609,8 +658,9 @@ ctx.globalAlpha = 1;
 });
 ctx.shadowBlur = 0;
 }
+
 // ===== ファイル読み込み =====
-let fileFlowPool = []; // ループ用のflowプール
+let fileFlowPool = [];
 function loadFile(event){
 const file = event.target.files[0];
 if(!file) return;
@@ -624,9 +674,7 @@ for(let i = 0; i < text.length; i += chunkSize){
 lastWord = “”;
 processText(text.slice(i, i + chunkSize));
 }
-// flowをループ用プールにコピー
 fileFlowPool = flow.map(f => ({…f}));
-// 共起ネットワークモードに自動切替
 mode = “network”;
 networkDirty = true;
 updateMode();
@@ -634,7 +682,7 @@ updateMode();
 reader.readAsText(file, “UTF-8”);
 event.target.value = “”;
 }
-// ===== クリア =====
+
 function clearAll(){
 words = {};
 edges = {};
@@ -644,16 +692,19 @@ networkNodes = [];
 networkDirty = true;
 lastWord = “”;
 isFileMode = false;
+// クールダウン記録もリセット
+for(const k in flowLastAdded) delete flowLastAdded[k];
 }
+
 function toggleMode(){
 mode = mode===“flow” ? “network” : “flow”;
 networkDirty = true;
 updateMode();
 }
-// 初期
+
 updateStatus();
 updateMode();
-// ===== コントロール表示切り替え =====
+
 function toggleControls(){
 const c = document.getElementById(“controls”);
 const btn = document.getElementById(“toggleControls”);
@@ -666,4 +717,5 @@ btn.textContent = “非表示”;
 }
 }
 </script></body>
+
 </html>
