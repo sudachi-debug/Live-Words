@@ -9,7 +9,6 @@ background: #060d1a;
 font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
 overflow: hidden;
 }
-/* ===== UI パネル ===== */
 #ui {
 position: fixed;
 top: 16px;
@@ -20,7 +19,6 @@ align-items: center;
 gap: 10px;
 flex-wrap: wrap;
 }
-/* ステータスバッジ */
 #statusBadge {
 display: flex;
 align-items: center;
@@ -53,7 +51,6 @@ animation: pulse 2s ease-in-out infinite;
 0%,100% { box-shadow: 0 0 8px #00e676, 0 0 20px #00e67688; }
 50%      { box-shadow: 0 0 4px #00e676, 0 0 10px #00e67644; }
 }
-/* ボタングループ */
 #btnGroup {
 display: flex;
 gap: 6px;
@@ -87,7 +84,6 @@ border: 1px solid rgba(255,255,255,0.15);
 background: linear-gradient(135deg,#1565c0,#2979ff);
 border-color: transparent;
 }
-/* ロゴ */
 #logo {
 position: fixed;
 bottom: 20px;
@@ -194,7 +190,6 @@ canvas { display: block; }
   </div>
 </div><div id="logo">Live Words</div><canvas id="canvas"></canvas>
 <script>
-// ===== 設定 =====
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
 const STOP_WORDS = [
   "えー","あの","まあ","ちょっと","えっと","なるほど",
@@ -220,19 +215,15 @@ const BOOST = [
 ];
 const MIN_COUNT = 2;
 
-// ★ フロー文字サイズ：緩やかな上限付き計算
-// weight が増えても対数的に大きくなり、最大 MAX_FONT_SIZE を超えない
-const BASE_FONT_SIZE = 14;   // 最小サイズ
-const MAX_FONT_SIZE  = 42;   // 最大サイズ（★画面内に収まる上限）
+const BASE_FONT_SIZE = 14;
+const MAX_FONT_SIZE  = 42;
 function calcFlowFontSize(weight) {
-// log スケールで緩やかに成長（weight=1→14px, weight=10→28px, weight=50→42px）
 const size = BASE_FONT_SIZE + Math.log1p(weight) * 6.5;
 return Math.min(size, MAX_FONT_SIZE);
 }
 
-// ★ flow への追加クールダウン（単語ごとに最後に追加した時刻を記録）
-const FLOW_COOLDOWN_MS = 4000; // 同じ単語は4秒以内に再追加しない
-const flowLastAdded = {}; // { word: timestamp }
+const FLOW_COOLDOWN_MS = 4000;
+const flowLastAdded = {};
 
 function getMaxWords(){
 const s = document.getElementById("wordSlider");
@@ -244,7 +235,6 @@ document.getElementById("wordCount").textContent = val;
 networkDirty = true;
 }
 
-// ===== 状態 =====
 let words = {};
 let edges = {};
 let flow = [];
@@ -256,7 +246,6 @@ let networkNodes = [];
 let networkDirty = true;
 let isFileMode = false;
 
-// ===== Canvas =====
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 function resize(){
@@ -267,7 +256,6 @@ networkDirty = true;
 resize();
 window.onresize = resize;
 
-// ===== UI =====
 function updateStatus(){
 const dot  = document.getElementById("dot");
 const text = document.getElementById("statusText");
@@ -290,7 +278,6 @@ btn.classList.add("active");
 }
 }
 
-// ===== 音声 =====
 function start(){
 if(running) return;
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -329,7 +316,6 @@ if(recognition) recognition.stop();
 updateStatus();
 }
 
-// ===== 日本語分割 =====
 function splitJapanese(text){
 return text
 .replace(/[、。！？!?]/g, " ")
@@ -383,7 +369,6 @@ return { base: unit, count: count };
 return { base: word, count: 1 };
 }
 
-// ===== テキスト処理 =====
 function processText(text){
 let tokens = splitJapanese(text);
 let current = [];
@@ -408,7 +393,6 @@ if(word.length < MIN_WORD_LEN) return;
 if(NORMALIZE[word]) word = NORMALIZE[word];
 if(STOP_WORDS.includes(word)) return;
 
-// 連続防止
 if(word === lastWord) return;
 lastWord = word;
 
@@ -426,20 +410,16 @@ words[word].weight = words[word].count * boost;
 
 current.push(word);
 
-// 表示しきい値
 const threshold = isFileMode ? 3 : MIN_COUNT;
 if(words[word].count < threshold) return;
 
-// ★ クールダウンチェック：同じ単語を短時間に何度も流さない
 const lastTime = flowLastAdded[word] || 0;
 if(now - lastTime < FLOW_COOLDOWN_MS) return;
 flowLastAdded[word] = now;
 
-// ★ 既にflow中に同じ単語があればスキップ
 const alreadyInFlow = flow.some(f => f.text === word);
 if(alreadyInFlow) return;
 
-// ★ フォントサイズ：対数スケールで緩やかに成長
 const fontSize = calcFlowFontSize(words[word].weight);
 
 flow.push({
@@ -476,7 +456,6 @@ networkDirty = true;
 }
 }
 
-// ===== ネットワークレイアウト =====
 function buildNetworkLayout(){
 networkDirty = false;
 let keys = Object.keys(words);
@@ -498,7 +477,7 @@ nodes.push({
 key:   k,
 x:     cx,
 y:     centerStartY + i * centerSpacing,
-size:  Math.max(28, 18 + w.weight * 3.5),
+size:  Math.max(28, Math.min(52, 18 + w.weight * 3.5)),
 group: w.group,
 isTop: true,
 rank:  i
@@ -518,7 +497,7 @@ nodes.push({
 key:   k,
 x:     nx,
 y:     ny,
-size:  Math.max(10, 8 + w.weight * 1.5),
+size:  Math.max(10, Math.min(28, 8 + w.weight * 1.5)),
 group: w.group,
 isTop: false,
 rank:  topCount + i
@@ -527,7 +506,6 @@ rank:  topCount + i
 networkNodes = nodes;
 }
 
-// ===== 描画 =====
 function draw(){
 drawBackground();
 if(mode==="flow"){
@@ -558,9 +536,8 @@ const speed = (parseFloat(document.getElementById("speedSlider").value) || 2);
 flow.forEach((f,i)=>{
 f.opacity = Math.min(1, (f.opacity||0) + 0.04);
 
-// ★ 表示中もweightが増えたらサイズをなめらかに追従（急激な変化を避ける）
 const targetSize = calcFlowFontSize(words[f.text] ? words[f.text].weight : 1);
-f.size = f.size + (targetSize - f.size) * 0.02; // イージング
+f.size = f.size + (targetSize - f.size) * 0.02;
 
 ctx.globalAlpha = f.opacity * alpha;
 ctx.fillStyle = COLORS[f.group];
@@ -570,7 +547,7 @@ ctx.shadowBlur = 18 + Math.sin(now*0.002 + f.t)*6;
 ctx.fillText(f.text, f.x, f.y);
 
 f.y += Math.sin(now*0.0015 + f.t)*0.4;
-f.x -= speed + f.size*0.02; // ★ size係数も小さく（0.04→0.02）
+f.x -= speed + f.size*0.02;
 
 if(f.x < -200){
   if(fileFlowPool.length > 0){
@@ -654,7 +631,6 @@ ctx.globalAlpha = 1;
 ctx.shadowBlur = 0;
 }
 
-// ===== ファイル読み込み =====
 let fileFlowPool = [];
 function loadFile(event){
 const file = event.target.files[0];
@@ -687,7 +663,6 @@ networkNodes = [];
 networkDirty = true;
 lastWord = "";
 isFileMode = false;
-// クールダウン記録もリセット
 for(const k in flowLastAdded) delete flowLastAdded[k];
 }
 
