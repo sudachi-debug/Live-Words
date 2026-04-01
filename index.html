@@ -169,7 +169,7 @@ canvas { display: block; }
   </div>
   <div id="controls">
     <div id="btnGroup">
-      <button class="start"  onclick="start()">開始</button>
+      <button class="start" id="startBtn" onclick="start()" disabled>読込中...</button>
       <button class="stop"   onclick="stop()">停止</button>
       <button class="toggle" id="toggleBtn" onclick="toggleMode()">共起ネットワークON</button>
     </div>
@@ -209,10 +209,8 @@ const NORMALIZE = {
   "自民":"自由民主党","自民党":"自由民主党",
   "維新":"日本維新の会"
 };
-const BOOST = [
-  "減税","教育","安全保障","子育て","経済","外交",
-  "憲法","防衛","インフラ","エネルギー","少子化"
-];
+let BOOST = [];
+
 const MIN_COUNT = 2;
 
 const BASE_FONT_SIZE = 14;
@@ -277,6 +275,22 @@ btn.textContent = "共起ネットワークOFF";
 btn.classList.add("active");
 }
 }
+
+// boost.json 読み込み
+fetch("boost.json")
+  .then(r => r.json())
+  .then(data => {
+    BOOST = data;
+    const btn = document.getElementById("startBtn");
+    btn.textContent = "開始";
+    btn.disabled = false;
+  })
+  .catch(() => {
+    console.warn("boost.json が読み込めませんでした。BOOSTなしで起動します。");
+    const btn = document.getElementById("startBtn");
+    btn.textContent = "開始";
+    btn.disabled = false;
+  });
 
 function start(){
 if(running) return;
