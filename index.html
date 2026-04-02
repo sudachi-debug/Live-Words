@@ -159,6 +159,92 @@ cursor: pointer;
 box-shadow: 0 0 6px #2979ff88;
 }
 canvas { display: block; }
+
+/* ===== 集計モーダル ===== */
+#summaryOverlay {
+display: none;
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.6);
+backdrop-filter: blur(6px);
+z-index: 100;
+align-items: center;
+justify-content: center;
+}
+#summaryOverlay.open {
+display: flex;
+}
+#summaryModal {
+background: rgba(10,20,40,0.97);
+border: 1px solid rgba(255,255,255,0.12);
+border-radius: 16px;
+padding: 28px;
+width: min(560px, 92vw);
+max-height: 80vh;
+display: flex;
+flex-direction: column;
+gap: 16px;
+}
+#summaryModal h2 {
+margin: 0;
+font-size: 16px;
+font-weight: 700;
+color: rgba(255,255,255,0.9);
+letter-spacing: 0.05em;
+}
+#summaryTable {
+overflow-y: auto;
+flex: 1;
+}
+#summaryTable table {
+width: 100%;
+border-collapse: collapse;
+font-size: 13px;
+}
+#summaryTable th {
+position: sticky;
+top: 0;
+background: rgba(10,20,40,0.99);
+color: rgba(255,255,255,0.5);
+font-weight: 600;
+padding: 8px 10px;
+text-align: left;
+border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+#summaryTable td {
+padding: 7px 10px;
+color: rgba(255,255,255,0.85);
+border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+#summaryTable tr:hover td {
+background: rgba(255,255,255,0.04);
+}
+.boost-badge {
+display: inline-block;
+background: linear-gradient(135deg,#f57f17,#ffd740);
+color: #000;
+font-size: 10px;
+font-weight: 700;
+padding: 2px 7px;
+border-radius: 999px;
+letter-spacing: 0.03em;
+}
+#summaryFooter {
+display: flex;
+gap: 8px;
+justify-content: flex-end;
+}
+#summaryFooter button {
+padding: 8px 18px;
+font-size: 13px;
+}
+.btn-csv {
+background: linear-gradient(135deg,#00838f,#00e5ff);
+}
+.btn-close {
+background: rgba(255,255,255,0.1);
+border: 1px solid rgba(255,255,255,0.2) !important;
+}
 </style></head><body><div id="ui">
 <div style="display:flex;align-items:center;gap:10px;">
     <div id="statusBadge">
@@ -179,6 +265,7 @@ canvas { display: block; }
         <input type="file" id="fileInput" accept=".txt" onchange="loadFile(event)" style="display:none;">
       </label>
       <button class="clear" onclick="clearAll()">クリア</button>
+      <button style="background:linear-gradient(135deg,#00838f,#00e5ff);" onclick="openSummary()">集計</button>
     </div>
     <div id="speedControl">
       速度
@@ -188,8 +275,21 @@ canvas { display: block; }
       <span id="wordCount">15</span>
     </div>
   </div>
-<div id="logo">Live Words&nbsp;&nbsp;v0.01.000</div>
-<canvas id="canvas"></canvas>
+</div>
+
+<!-- 集計モーダル -->
+<div id="summaryOverlay" onclick="onOverlayClick(event)">
+  <div id="summaryModal">
+    <h2>ワード集計</h2>
+    <div id="summaryTable"></div>
+    <div id="summaryFooter">
+      <button class="btn-csv" onclick="downloadCSV()">CSVダウンロード</button>
+      <button class="btn-close" onclick="closeSummary()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div id="logo">Live Words&nbsp;&nbsp;v0.02.000</div><canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
 const STOP_WORDS = [
@@ -277,7 +377,6 @@ btn.classList.add("active");
 }
 }
 
-// boost.json 読み込み
 fetch("boost.json")
   .then(r => r.json())
   .then(data => {
@@ -700,6 +799,48 @@ btn.textContent = " 表示 ";
 c.style.display = "none";
 btn.textContent = "非表示";
 }
+}
+
+// ===== 集計モーダル =====
+function openSummary(){
+const sorted = Object.entries(words).sort((a,b)=>b[1].weight - a[1].weight);
+if(sorted.length === 0){
+document.getElementById("summaryTable").innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:13px;padding:12px 0;">データがありません</p>';
+} else {
+let html = '<table><thead><tr><th>#</th><th>ワード</th><th>出現回数</th><th>重み</th><th>BOOST</th></tr></thead><tbody>';
+sorted.forEach(([word, data], i)=>{
+const isBoost = BOOST.includes(word);
+const badge = isBoost ? '<span class="boost-badge">BOOST</span>' : '';
+html += `<tr><td style="color:rgba(255,255,255,0.35)">${i+1}</td><td>${word}</td><td style="text-align:center">${data.count}</td><td style="text-align:center">${data.weight}</td><td style="text-align:center">${badge}</td></tr>`;
+});
+html += '</tbody></table>';
+document.getElementById("summaryTable").innerHTML = html;
+}
+document.getElementById("summaryOverlay").classList.add("open");
+}
+
+function closeSummary(){
+document.getElementById("summaryOverlay").classList.remove("open");
+}
+
+function onOverlayClick(e){
+if(e.target === document.getElementById("summaryOverlay")) closeSummary();
+}
+
+function downloadCSV(){
+const sorted = Object.entries(words).sort((a,b)=>b[1].weight - a[1].weight);
+let csv = "#,ワード,出現回数,重み,BOOST\n";
+sorted.forEach(([word, data], i)=>{
+const isBoost = BOOST.includes(word) ? "YES" : "";
+csv += `${i+1},${word},${data.count},${data.weight},${isBoost}\n`;
+});
+const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
+const url  = URL.createObjectURL(blob);
+const a    = document.createElement("a");
+a.href     = url;
+a.download = "livewords_summary.csv";
+a.click();
+URL.revokeObjectURL(url);
 }
 </script></body>
 </html>
