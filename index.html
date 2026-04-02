@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="ja"><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Words Pro</title><style>
+<title>LIVE WORDS</title><style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
   * { box-sizing: border-box; }
 body {
@@ -254,7 +254,7 @@ text-align: center;
     <div id="btnGroup">
       <button class="start" id="startBtn" onclick="start()" disabled>読込中...</button>
       <button class="stop" onclick="stop()">停止</button>
-      <button class="toggle" id="toggleBtn" onclick="toggleMode()">共起ネットワークON</button>
+      <button class="toggle" id="toggleBtn" onclick="toggleMode()">共起ON</button>
       <button class="toggle" id="flowToggleBtn" onclick="toggleFlowOnNetwork()" style="display:none;">文字流れON</button>
     </div>
     <div id="btnGroup2">
@@ -300,7 +300,7 @@ text-align: center;
   </div>
 </div>
 
-<div id="logo">Live Words&nbsp;&nbsp;v0.04.000</div>
+<div id="logo">Live Words&nbsp;&nbsp;v0.04.001</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -426,10 +426,10 @@ function updateMode(){
   const btn     = document.getElementById("toggleBtn");
   const flowBtn = document.getElementById("flowToggleBtn");
   if(mode==="flow"){
-    btn.textContent="共起ネットワークON"; btn.classList.remove("active");
+    btn.textContent="共起ON"; btn.classList.remove("active");
     flowBtn.style.display="none";
   } else {
-    btn.textContent="共起ネットワークOFF"; btn.classList.add("active");
+    btn.textContent="共起OFF"; btn.classList.add("active");
     flowBtn.style.display="";
     updateFlowToggleBtn();
   }
