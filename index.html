@@ -300,7 +300,7 @@ text-align: center;
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.07.002</div>
+<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.07.003</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -375,7 +375,7 @@ function calcFlowFontSize(weight){
   return Math.min(BASE_FONT_SIZE + Math.log1p(weight)*6.5, MAX_FONT_SIZE);
 }
 
-const FLOW_COOLDOWN_MS = 4000;
+const FLOW_COOLDOWN_MS = 2000;
 const flowLastAdded    = {};
 
 function getMaxWords(){
@@ -485,7 +485,6 @@ function splitJapanese(text){
 }
 
 function cleanWord(word){
-  // ★ A) 複合語尾を追加
   word=word.replace(/(にくい|づらい|にくく|やすい|やすく|すぎる|すぎ)$/, "");
   word=word.replace(/(されている|されていた|してしまう|してしまった)$/,"");
   word=word.replace(/(している|していた|されている|してきた|していく)$/,"");
@@ -502,7 +501,6 @@ function cleanWord(word){
 }
 
 function isJunkToken(word){
-  // ★ B) 平仮名のみ2文字以下はゴミトークンとして捨てる
   return /^[ぁ-ん]{1,2}$/.test(word);
 }
 
@@ -533,11 +531,9 @@ function processText(text){
     w=w.trim(); if(!w) return; if(w.length<MIN_WORD_LEN) return;
     let {base,count}=extractRepeats(w); let word=base;
     word=cleanWord(word); if(!word) return;
-    // ★ B) ゴミトークン除去
     if(isJunkToken(word)) return;
     word=stemWord(word);  if(!word) return;
     if(word.length<MIN_WORD_LEN) return;
-    // ★ B) stem後も再チェック
     if(isJunkToken(word)) return;
     if(NORMALIZE[word]) word=NORMALIZE[word];
     if(STOP_WORDS.includes(word)) return;
@@ -548,6 +544,7 @@ function processText(text){
     words[word].weight=words[word].count*getBoostRate(word);
     current.push(word);
     const threshold=isFileMode?3:1;
+    if(words[word].count<threshold) return;
     const lastTime=flowLastAdded[word]||0;
     if(now-lastTime<FLOW_COOLDOWN_MS) return;
     flowLastAdded[word]=now;
