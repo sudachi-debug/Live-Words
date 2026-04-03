@@ -547,8 +547,7 @@ function processText(text){
     words[word].count+=count;
     words[word].weight=words[word].count*getBoostRate(word);
     current.push(word);
-    const threshold=isFileMode?3:MIN_COUNT;
-    if(words[word].count<threshold) return;
+    const threshold=isFileMode?3:1;
     const lastTime=flowLastAdded[word]||0;
     if(now-lastTime<FLOW_COOLDOWN_MS) return;
     flowLastAdded[word]=now;
