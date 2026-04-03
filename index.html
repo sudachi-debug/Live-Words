@@ -624,7 +624,7 @@ function drawNetwork(){
   topNodes.forEach(center=>{
     restNodes.forEach(node=>{
       let s=(edges[center.key+"*"+node.key]||0)+(edges[node.key+"*"+center.key]||0);
-      ctx.globalAlpha=Math.min(0.55,0.1+s*0.08);
+      ctx.globalAlpha=Math.min(0.55,0.25+s*0.08);
       let grad=ctx.createLinearGradient(center.x,center.y,node.x,node.y);
       grad.addColorStop(0,COLORS[center.group]); grad.addColorStop(1,COLORS[node.group]);
       ctx.strokeStyle=grad; ctx.lineWidth=Math.max(0.5,Math.min(4,s*0.4));
