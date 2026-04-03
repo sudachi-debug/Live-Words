@@ -446,7 +446,7 @@ function start(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){ alert("このブラウザは音声認識に対応していません"); return; }
   recognition=new SR();
-  recognition.lang="ja-JP"; recognition.continuous=true; recognition.interimResults=true;
+  recognition.lang="ja-JP"; recognition.continuous=true; recognition.interimResults=false;
   running=true; updateStatus();
   recognition.onresult=(e)=>{
     let text="";
