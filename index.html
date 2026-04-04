@@ -300,7 +300,7 @@ text-align: center;
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.08.002</div>
+<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.08.003</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -394,7 +394,7 @@ let mode         = "flow";
 let recognition;
 let running      = false;
 let lastWord     = "";
-let lastInterimText = "";
+let lastInterimWords = []; // ★ 前回インタリムの単語リスト
 let networkNodes = [];
 let networkDirty = true;
 let isFileMode   = false;
@@ -453,21 +453,19 @@ function start(){
     for(let i=e.resultIndex;i<e.results.length;i++){
       const transcript=e.results[i][0].transcript;
       if(e.results[i].isFinal){
-        lastInterimText="";
+        lastInterimWords=[];
         processText(transcript);
       } else {
-        const newPart=transcript.slice(lastInterimText.length);
-        lastInterimText=transcript;
-        if(newPart) processTextFlowOnly(newPart);
+        processInterim(transcript);
       }
     }
   };
   recognition.onerror=(e)=>{ console.error("recognition error:",e.error); running=false; updateStatus(); };
-  recognition.onend=()=>{ setTimeout(()=>{ if(running) recognition.start(); },200); lastInterimText=""; };
+  recognition.onend=()=>{ setTimeout(()=>{ if(running) recognition.start(); },200); lastInterimWords=[]; };
   recognition.start();
 }
 function stop(){
-  running=false; lastInterimText=""; if(recognition) recognition.stop(); updateStatus();
+  running=false; lastInterimWords=[]; if(recognition) recognition.stop(); updateStatus();
 }
 
 function cleanInputText(text){
@@ -528,12 +526,11 @@ function extractRepeats(word){
   return {base:word,count:1};
 }
 
-// ★ インタリム用：wordsに登録済みの単語のみ流す
-function processTextFlowOnly(text){
+// ★ テキストから単語リストを抽出（流れ判定用）
+function extractWords(text){
   text=cleanInputText(text);
-  const tokens=splitJapanese(text);
-  const now=Date.now();
-  tokens.forEach(w=>{
+  const result=[];
+  splitJapanese(text).forEach(w=>{
     w=w.trim(); if(!w) return; if(w.length<MIN_WORD_LEN) return;
     let {base}=extractRepeats(w); let word=base;
     word=cleanWord(word); if(!word) return;
@@ -543,15 +540,27 @@ function processTextFlowOnly(text){
     if(isJunkToken(word)) return;
     if(NORMALIZE[word]) word=NORMALIZE[word];
     if(STOP_WORDS.includes(word)) return;
-    // ★ wordsに登録済みのものだけ流す
-    if(!words[word]) return;
+    if(!result.includes(word)) result.push(word);
+  });
+  return result;
+}
+
+// ★ インタリム処理：全文パースして前回との差分単語のみ流す
+function processInterim(transcript){
+  const currentWords = extractWords(transcript);
+  const now = Date.now();
+  currentWords.forEach(word=>{
+    if(lastInterimWords.includes(word)) return; // 前回と同じ → スキップ
     const lastTime=flowLastAdded[word]||0;
     if(now-lastTime<FLOW_COOLDOWN_MS) return;
     if(flow.some(f=>f.text===word)) return;
     flowLastAdded[word]=now;
-    flow.push({text:word,x:canvas.width,y:80+Math.random()*(canvas.height-120),size:calcFlowFontSize(words[word].weight),group:words[word].group,t:Math.random()*1000,opacity:0});
+    const weight=words[word]?words[word].weight:1;
+    const group=words[word]?words[word].group:Math.floor(Math.random()*COLORS.length);
+    flow.push({text:word,x:canvas.width,y:80+Math.random()*(canvas.height-120),size:calcFlowFontSize(weight),group:group,t:Math.random()*1000,opacity:0});
     if(flow.length>40) flow.shift();
   });
+  lastInterimWords=currentWords;
 }
 
 function processText(text){
@@ -706,7 +715,7 @@ function loadFile(event){
 
 function clearAll(){
   words={}; edges={}; flow=[]; fileFlowPool=[];
-  networkNodes=[]; networkDirty=true; lastWord=""; lastInterimText=""; isFileMode=false;
+  networkNodes=[]; networkDirty=true; lastWord=""; lastInterimWords=[]; isFileMode=false;
   for(const k in flowLastAdded) delete flowLastAdded[k];
 }
 function toggleMode(){ mode=mode==="flow"?"network":"flow"; networkDirty=true; updateMode(); }
