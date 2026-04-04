@@ -300,7 +300,7 @@ text-align: center;
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.07.003</div>
+<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.07.004</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -375,7 +375,7 @@ function calcFlowFontSize(weight){
   return Math.min(BASE_FONT_SIZE + Math.log1p(weight)*6.5, MAX_FONT_SIZE);
 }
 
-const FLOW_COOLDOWN_MS = 2000;
+const FLOW_COOLDOWN_MS = 1000;
 const flowLastAdded    = {};
 
 function getMaxWords(){
