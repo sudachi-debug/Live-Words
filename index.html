@@ -300,7 +300,7 @@ text-align: center;
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.08.000</div>
+<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.08.001</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -394,6 +394,7 @@ let mode         = "flow";
 let recognition;
 let running      = false;
 let lastWord     = "";
+let lastInterimText = "";
 let networkNodes = [];
 let networkDirty = true;
 let isFileMode   = false;
@@ -452,18 +453,22 @@ function start(){
     for(let i=e.resultIndex;i<e.results.length;i++){
       const transcript=e.results[i][0].transcript;
       if(e.results[i].isFinal){
-        processText(transcript);         // カウント + 流れ
+        lastInterimText="";
+        processText(transcript);
       } else {
-        processTextFlowOnly(transcript); // 流れのみ
+        // ★ 差分のみ processTextFlowOnly に渡す
+        const newPart=transcript.slice(lastInterimText.length);
+        lastInterimText=transcript;
+        if(newPart) processTextFlowOnly(newPart);
       }
     }
   };
   recognition.onerror=(e)=>{ console.error("recognition error:",e.error); running=false; updateStatus(); };
-  recognition.onend=()=>{ setTimeout(()=>{ if(running) recognition.start(); },200); };
+  recognition.onend=()=>{ setTimeout(()=>{ if(running) recognition.start(); },200); lastInterimText=""; };
   recognition.start();
 }
 function stop(){
-  running=false; if(recognition) recognition.stop(); updateStatus();
+  running=false; lastInterimText=""; if(recognition) recognition.stop(); updateStatus();
 }
 
 function cleanInputText(text){
@@ -524,7 +529,7 @@ function extractRepeats(word){
   return {base:word,count:1};
 }
 
-// ★ インタリム用：流れのみ、カウント・共起なし
+// ★ インタリム用：差分テキストを流れのみに使う
 function processTextFlowOnly(text){
   text=cleanInputText(text);
   const tokens=splitJapanese(text);
@@ -702,7 +707,7 @@ function loadFile(event){
 
 function clearAll(){
   words={}; edges={}; flow=[]; fileFlowPool=[];
-  networkNodes=[]; networkDirty=true; lastWord=""; isFileMode=false;
+  networkNodes=[]; networkDirty=true; lastWord=""; lastInterimText=""; isFileMode=false;
   for(const k in flowLastAdded) delete flowLastAdded[k];
 }
 function toggleMode(){ mode=mode==="flow"?"network":"flow"; networkDirty=true; updateMode(); }
