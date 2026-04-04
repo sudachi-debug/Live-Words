@@ -300,7 +300,7 @@ text-align: center;
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.07.004</div>
+<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.08.000</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -449,13 +449,14 @@ function start(){
   recognition.lang="ja-JP"; recognition.continuous=true; recognition.interimResults=true;
   running=true; updateStatus();
   recognition.onresult=(e)=>{
-    let finalText="";
     for(let i=e.resultIndex;i<e.results.length;i++){
+      const transcript=e.results[i][0].transcript;
       if(e.results[i].isFinal){
-        finalText+=e.results[i][0].transcript;
+        processText(transcript);         // カウント + 流れ
+      } else {
+        processTextFlowOnly(transcript); // 流れのみ
       }
     }
-    if(finalText) processText(finalText);
   };
   recognition.onerror=(e)=>{ console.error("recognition error:",e.error); running=false; updateStatus(); };
   recognition.onend=()=>{ setTimeout(()=>{ if(running) recognition.start(); },200); };
@@ -523,8 +524,34 @@ function extractRepeats(word){
   return {base:word,count:1};
 }
 
+// ★ インタリム用：流れのみ、カウント・共起なし
+function processTextFlowOnly(text){
+  text=cleanInputText(text);
+  const tokens=splitJapanese(text);
+  const now=Date.now();
+  tokens.forEach(w=>{
+    w=w.trim(); if(!w) return; if(w.length<MIN_WORD_LEN) return;
+    let {base}=extractRepeats(w); let word=base;
+    word=cleanWord(word); if(!word) return;
+    if(isJunkToken(word)) return;
+    word=stemWord(word); if(!word) return;
+    if(word.length<MIN_WORD_LEN) return;
+    if(isJunkToken(word)) return;
+    if(NORMALIZE[word]) word=NORMALIZE[word];
+    if(STOP_WORDS.includes(word)) return;
+    const lastTime=flowLastAdded[word]||0;
+    if(now-lastTime<FLOW_COOLDOWN_MS) return;
+    if(flow.some(f=>f.text===word)) return;
+    flowLastAdded[word]=now;
+    const weight=words[word]?words[word].weight:1;
+    const group=words[word]?words[word].group:Math.floor(Math.random()*COLORS.length);
+    flow.push({text:word,x:canvas.width,y:80+Math.random()*(canvas.height-120),size:calcFlowFontSize(weight),group:group,t:Math.random()*1000,opacity:0});
+    if(flow.length>40) flow.shift();
+  });
+}
+
 function processText(text){
-  text = cleanInputText(text);
+  text=cleanInputText(text);
   let tokens=splitJapanese(text), current=[];
   const now=Date.now();
   tokens.forEach(w=>{
