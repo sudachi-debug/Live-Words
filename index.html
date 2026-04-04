@@ -300,7 +300,7 @@ text-align: center;
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.08.003</div>
+<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.09.000</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -387,17 +387,18 @@ function onWordSliderChange(){
   networkDirty = true;
 }
 
-let words        = {};
-let edges        = {};
-let flow         = [];
-let mode         = "flow";
+let words           = {};
+let edges           = {};
+let flow            = [];
+let mode            = "flow";
 let recognition;
-let running      = false;
-let lastWord     = "";
-let lastInterimWords = []; // ★ 前回インタリムの単語リスト
-let networkNodes = [];
-let networkDirty = true;
-let isFileMode   = false;
+let running         = false;
+let lastWord        = "";
+let lastInterimWords = [];
+let emittedWords    = new Set(); // ★ ④ インタリム流し済みフラグ
+let networkNodes    = [];
+let networkDirty    = true;
+let isFileMode      = false;
 
 const canvas = document.getElementById("canvas");
 const ctx    = canvas.getContext("2d");
@@ -454,6 +455,7 @@ function start(){
       const transcript=e.results[i][0].transcript;
       if(e.results[i].isFinal){
         lastInterimWords=[];
+        emittedWords.clear(); // ★ ④ isFinal時にフラグクリア
         processText(transcript);
       } else {
         processInterim(transcript);
@@ -461,11 +463,11 @@ function start(){
     }
   };
   recognition.onerror=(e)=>{ console.error("recognition error:",e.error); running=false; updateStatus(); };
-  recognition.onend=()=>{ setTimeout(()=>{ if(running) recognition.start(); },200); lastInterimWords=[]; };
+  recognition.onend=()=>{ setTimeout(()=>{ if(running) recognition.start(); },200); lastInterimWords=[]; emittedWords.clear(); };
   recognition.start();
 }
 function stop(){
-  running=false; lastInterimWords=[]; if(recognition) recognition.stop(); updateStatus();
+  running=false; lastInterimWords=[]; emittedWords.clear(); if(recognition) recognition.stop(); updateStatus();
 }
 
 function cleanInputText(text){
@@ -500,6 +502,8 @@ function cleanWord(word){
   word=word.replace(/(くて|くない|かった|かる|ければ)$/,"い");
   word=word.replace(/(なくて|なかった|なく)$/,"ない");
   for(let i=0;i<3;i++) word=word.replace(/(が|を|は|に|で|と|も|の|へ|や|か|な|し|く|て|で)$/,"");
+  // ★ ⑤ 平仮名のみ3文字以下はnullで除去
+  if(/^[ぁ-ん]+$/.test(word) && word.length <= 3) return null;
   return word;
 }
 
@@ -526,7 +530,6 @@ function extractRepeats(word){
   return {base:word,count:1};
 }
 
-// ★ テキストから単語リストを抽出（流れ判定用）
 function extractWords(text){
   text=cleanInputText(text);
   const result=[];
@@ -545,16 +548,30 @@ function extractWords(text){
   return result;
 }
 
-// ★ インタリム処理：全文パースして前回との差分単語のみ流す
+// ★ インタリム処理：①②④⑤フィルタ適用
 function processInterim(transcript){
   const currentWords = extractWords(transcript);
   const now = Date.now();
   currentWords.forEach(word=>{
     if(lastInterimWords.includes(word)) return; // 前回と同じ → スキップ
+
+    // ★ ⑤ はcleanWord内で処理済み
+
+    // ★ ② words未登録ならスキップ
+    if(!words[word]){
+      // ★ ① 未登録かつ4文字未満ならスキップ
+      if(word.length < 4) return;
+    }
+
+    // ★ ④ 既にインタリムで流し済みならスキップ
+    if(emittedWords.has(word)) return;
+
     const lastTime=flowLastAdded[word]||0;
     if(now-lastTime<FLOW_COOLDOWN_MS) return;
     if(flow.some(f=>f.text===word)) return;
+
     flowLastAdded[word]=now;
+    emittedWords.add(word); // ★ ④ 流し済みフラグ記録
     const weight=words[word]?words[word].weight:1;
     const group=words[word]?words[word].group:Math.floor(Math.random()*COLORS.length);
     flow.push({text:word,x:canvas.width,y:80+Math.random()*(canvas.height-120),size:calcFlowFontSize(weight),group:group,t:Math.random()*1000,opacity:0});
@@ -715,7 +732,8 @@ function loadFile(event){
 
 function clearAll(){
   words={}; edges={}; flow=[]; fileFlowPool=[];
-  networkNodes=[]; networkDirty=true; lastWord=""; lastInterimWords=[]; isFileMode=false;
+  networkNodes=[]; networkDirty=true; lastWord=""; lastInterimWords=[];
+  emittedWords.clear(); isFileMode=false;
   for(const k in flowLastAdded) delete flowLastAdded[k];
 }
 function toggleMode(){ mode=mode==="flow"?"network":"flow"; networkDirty=true; updateMode(); }
