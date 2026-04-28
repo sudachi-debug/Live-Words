@@ -159,8 +159,6 @@ cursor: pointer;
 box-shadow: 0 0 6px #2979ff88;
 }
 canvas { display: block; }
-
-/* ===== 共通モーダル ===== */
 .overlay {
 display: none;
 position: fixed;
@@ -204,8 +202,6 @@ justify-content: flex-end;
 .btn-close { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2) !important; }
 .btn-setting { background: linear-gradient(135deg,#e65100,#ff9800); }
 .btn-reset { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2) !important; font-size:12px; }
-
-/* ===== 集計テーブル ===== */
 #summaryTable table { width:100%; border-collapse:collapse; font-size:13px; }
 #summaryTable th {
 position: sticky; top: 0;
@@ -222,8 +218,6 @@ font-size: 10px; font-weight: 700;
 padding: 2px 7px; border-radius: 999px;
 letter-spacing: 0.03em; color: #000;
 }
-
-/* ===== 設定モーダル ===== */
 .group-row {
 display: flex; align-items: center;
 gap: 12px; padding: 10px 4px;
@@ -276,7 +270,6 @@ text-align: center;
   </div>
 </div>
 
-<!-- 集計モーダル -->
 <div id="summaryOverlay" class="overlay" onclick="onOverlayClick(event,'summaryOverlay')">
   <div class="modal">
     <h2>ワード集計</h2>
@@ -288,7 +281,6 @@ text-align: center;
   </div>
 </div>
 
-<!-- 設定モーダル -->
 <div id="settingOverlay" class="overlay" onclick="onOverlayClick(event,'settingOverlay')">
   <div class="modal">
     <h2>グループ倍率設定</h2>
@@ -300,7 +292,7 @@ text-align: center;
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.09.002</div>
+<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.09.003</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -334,122 +326,87 @@ let flowOnNetwork = (()=>{
   const s = localStorage.getItem(LS_FLOW_KEY);
   return s === null ? false : s === "true";
 })();
-
-function saveFlowOnNetwork(){
-  localStorage.setItem(LS_FLOW_KEY, String(flowOnNetwork));
-}
+function saveFlowOnNetwork(){ localStorage.setItem(LS_FLOW_KEY, String(flowOnNetwork)); }
 function updateFlowToggleBtn(){
   const btn = document.getElementById("flowToggleBtn");
   if(flowOnNetwork){ btn.textContent="文字流れOFF"; btn.classList.add("active"); }
   else             { btn.textContent="文字流れON";  btn.classList.remove("active"); }
 }
-function toggleFlowOnNetwork(){
-  flowOnNetwork = !flowOnNetwork;
-  saveFlowOnNetwork();
-  updateFlowToggleBtn();
-}
+function toggleFlowOnNetwork(){ flowOnNetwork=!flowOnNetwork; saveFlowOnNetwork(); updateFlowToggleBtn(); }
 
 function buildWordGroupMap(){
-  wordGroupMap = {};
+  wordGroupMap={};
   Object.entries(boostGroups).forEach(([gname,gdata])=>{
     (gdata.words||[]).forEach(w=>{ wordGroupMap[w]=gname; });
   });
 }
-function getBoostRate(word){
-  const g = wordGroupMap[word];
-  if(!g) return 1;
-  return groupRates[g] || 1;
-}
-function saveRates(){
-  localStorage.setItem(LS_KEY, JSON.stringify(groupRates));
-}
-function loadSavedRates(){
-  try { const s=localStorage.getItem(LS_KEY); if(s) return JSON.parse(s); } catch(e){}
-  return null;
-}
+function getBoostRate(word){ const g=wordGroupMap[word]; if(!g) return 1; return groupRates[g]||1; }
+function saveRates(){ localStorage.setItem(LS_KEY, JSON.stringify(groupRates)); }
+function loadSavedRates(){ try{ const s=localStorage.getItem(LS_KEY); if(s) return JSON.parse(s); }catch(e){} return null; }
 
-const MIN_COUNT      = 2;
 const BASE_FONT_SIZE = 14;
 const MAX_FONT_SIZE  = 42;
-function calcFlowFontSize(weight){
-  return Math.min(BASE_FONT_SIZE + Math.log1p(weight)*6.5, MAX_FONT_SIZE);
-}
+function calcFlowFontSize(weight){ return Math.min(BASE_FONT_SIZE+Math.log1p(weight)*6.5, MAX_FONT_SIZE); }
 
 const FLOW_COOLDOWN_MS = 1000;
 const flowLastAdded    = {};
 
-function getMaxWords(){
-  const s = document.getElementById("wordSlider");
-  return s ? parseInt(s.value) : 15;
-}
+function getMaxWords(){ const s=document.getElementById("wordSlider"); return s?parseInt(s.value):15; }
 function onWordSliderChange(){
-  document.getElementById("wordCount").textContent = document.getElementById("wordSlider").value;
-  networkDirty = true;
+  document.getElementById("wordCount").textContent=document.getElementById("wordSlider").value;
+  networkDirty=true;
 }
 
-let words           = {};
-let edges           = {};
-let flow            = [];
-let mode            = "flow";
+let words        = {};
+let edges        = {};
+let flow         = [];
+let mode         = "flow";
 let recognition;
-let running         = false;
-let lastWord        = "";
-let emittedWords    = new Set();
-let networkNodes    = [];
-let networkDirty    = true;
-let isFileMode      = false;
+let running      = false;
+let lastWord     = "";
+let emittedWords = new Set();
+let networkNodes = [];
+let networkDirty = true;
+let isFileMode   = false;
 
-// ★ interim用: 前フレームの生テキストと、確定済みセグメントのリスト
 let lastInterimTranscript = "";
-let interimSegments       = [];   // { text, emitted } の配列
-let interimFlushTimer     = null; // 無音ポーズ検出タイマー
-
-// 区切り文字パターン（助詞・助動詞・句読点など文節境界）
-const SEGMENT_BOUNDARY = /[、。！？!?\s]/;
-// 区切り助詞（直後で文節が終わる）
-const BOUNDARY_PARTICLES = /(?:は|が|を|に|で|と|も|の|へ|や|から|まで|より|って|けど|ので|ながら|として|にて)$/;
+let interimSegments       = [];
+let interimFlushTimer     = null;
 
 const canvas = document.getElementById("canvas");
 const ctx    = canvas.getContext("2d");
-function resize(){
-  canvas.width=window.innerWidth; canvas.height=window.innerHeight; networkDirty=true;
-}
+function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; networkDirty=true; }
 resize();
-window.onresize = resize;
+window.onresize=resize;
 
 function updateStatus(){
-  const dot=document.getElementById("dot"), text=document.getElementById("statusText");
+  const dot=document.getElementById("dot"),text=document.getElementById("statusText");
   if(running){ dot.className="active"; text.textContent="Listening..."; }
   else        { dot.className="";      text.textContent="停止中"; }
 }
 function updateMode(){
-  const btn=document.getElementById("toggleBtn"), flowBtn=document.getElementById("flowToggleBtn");
+  const btn=document.getElementById("toggleBtn"),flowBtn=document.getElementById("flowToggleBtn");
   if(mode==="flow"){
-    btn.textContent="共起ON"; btn.classList.remove("active");
-    flowBtn.style.display="none";
+    btn.textContent="共起ON"; btn.classList.remove("active"); flowBtn.style.display="none";
   } else {
-    btn.textContent="共起OFF"; btn.classList.add("active");
-    flowBtn.style.display="";
-    updateFlowToggleBtn();
+    btn.textContent="共起OFF"; btn.classList.add("active"); flowBtn.style.display=""; updateFlowToggleBtn();
   }
 }
 
 fetch("boost.json")
   .then(r=>r.json())
   .then(data=>{
-    boostGroups = data.groups||{};
-    const saved = loadSavedRates();
+    boostGroups=data.groups||{};
+    const saved=loadSavedRates();
     Object.entries(boostGroups).forEach(([gname,gdata])=>{
       groupRates[gname]=(saved&&saved[gname]!=null)?saved[gname]:(gdata.rate||1);
     });
     buildWordGroupMap();
-    const btn=document.getElementById("startBtn");
-    btn.textContent="開始"; btn.disabled=false;
+    const btn=document.getElementById("startBtn"); btn.textContent="開始"; btn.disabled=false;
   })
   .catch(()=>{
     console.warn("boost.json が読み込めませんでした。BOOSTなしで起動します。");
-    const btn=document.getElementById("startBtn");
-    btn.textContent="開始"; btn.disabled=false;
+    const btn=document.getElementById("startBtn"); btn.textContent="開始"; btn.disabled=false;
   });
 
 function start(){
@@ -459,67 +416,74 @@ function start(){
   recognition=new SR();
   recognition.lang="ja-JP"; recognition.continuous=true; recognition.interimResults=true;
   running=true; updateStatus();
-
   recognition.onresult=(e)=>{
     for(let i=e.resultIndex;i<e.results.length;i++){
       const transcript=e.results[i][0].transcript;
-      if(e.results[i].isFinal){
-        // interim状態をリセットしてfinal処理
-        resetInterimState();
-        processText(transcript);
-      } else {
-        processInterim(transcript);
-      }
+      if(e.results[i].isFinal){ resetInterimState(); processText(transcript); }
+      else { processInterim(transcript); }
     }
   };
-
   recognition.onerror=(e)=>{ console.error("recognition error:",e.error); running=false; updateStatus(); };
-  recognition.onend=()=>{
-    resetInterimState();
-    setTimeout(()=>{ if(running) recognition.start(); },200);
-  };
+  recognition.onend=()=>{ resetInterimState(); setTimeout(()=>{ if(running) recognition.start(); },200); };
   recognition.start();
 }
-
-function stop(){
-  running=false;
-  resetInterimState();
-  if(recognition) recognition.stop();
-  updateStatus();
-}
-
-// ★ interim状態をまとめてリセット
+function stop(){ running=false; resetInterimState(); if(recognition) recognition.stop(); updateStatus(); }
 function resetInterimState(){
-  lastInterimTranscript = "";
-  interimSegments       = [];
-  emittedWords.clear();
+  lastInterimTranscript=""; interimSegments=[]; emittedWords.clear();
   if(interimFlushTimer){ clearTimeout(interimFlushTimer); interimFlushTimer=null; }
 }
 
 function cleanInputText(text){
   return text
-    .replace(/[「」『』""''（）()［］\[\]【】〔〕]/g, " ")
-    .replace(/[0-9０-９]+[,，]?[0-9０-９]*/g, " ")
-    .replace(/[～〜~\-－―]/g, " ")
-    .replace(/\n/g, "。")
-    .replace(/[!"#$%&'*+\/<=>@^_`{|}\\]/g, " ");
+    .replace(/[「」『』""''（）()［］\[\]【】〔〕]/g," ")
+    .replace(/[0-9０-９]+[,，]?[0-9０-９]*/g," ")
+    .replace(/[～〜~\-－―]/g," ")
+    .replace(/\n/g,"。")
+    .replace(/[!"#$%&'*+\/<=>@^_`{|}\\]/g," ");
 }
 
 function splitJapanese(text){
   return text
-    .replace(/[、。！？!?]/g, " ")
-    .replace(/(は|が|を|に|で|と|の|へ|や|ね|よ|か|な|し)/g, "$1 ")
-    .replace(/(する|した|して|している|いる|いた|なる|なった|ある|あった)/g, "$1 ")
-    .replace(/(ため|こと|もの|よう|場合|ところ|とき)/g, " ")
-    .replace(/([ぁ-んァ-ンー一-龥ａ-ｚＡ-Ｚa-zA-Z]{2,})/g, "$1 ")
+    .replace(/[、。！？!?]/g," ")
+    .replace(/(は|が|を|に|で|と|の|へ|や|ね|よ|か|な|し)/g,"$1 ")
+    .replace(/(する|した|して|している|いる|いた|なる|なった|ある|あった)/g,"$1 ")
+    .replace(/(ため|こと|もの|よう|場合|ところ|とき)/g," ")
+    .replace(/([ぁ-んァ-ンー一-龥ａ-ｚＡ-Ｚa-zA-Z]{2,})/g,"$1 ")
     .split(/\s+/);
 }
 
+// ★★ cleanWord 強化版 ★★
+// 「行きます→行く」「住んでいました→住む」など動詞活用の末尾を確実に除去
 function cleanWord(word){
-  word=word.replace(/(にくい|づらい|にくく|やすい|やすく|すぎる|すぎ)$/, "");
+  // 長い複合パターンから先に除去（順序重要）
+  word=word.replace(/(いらっしゃいます|いらっしゃいました)$/,"");
+  word=word.replace(/(させていただきます|させていただきました)$/,"");
+  word=word.replace(/(していただきます|していただきました)$/,"");
+  word=word.replace(/(でございます|でございました)$/,"");
+  word=word.replace(/(ておりました|ておりまして|ております)$/,"");
+  word=word.replace(/(てしまいました|てしまいます)$/,"");
+  word=word.replace(/(てしまった|てしまう)$/,"");
+  word=word.replace(/(されていました|されています)$/,"");
+  word=word.replace(/(していました|しています)$/,"");
+  word=word.replace(/(できました|できます)$/,"でき");
+  word=word.replace(/(なりました|なります)$/,"なる");
+  word=word.replace(/(ありました|あります)$/,"ある");
+  word=word.replace(/(いました|います)$/,"いる");
+  word=word.replace(/(きました|きます)$/,"くる");
+  word=word.replace(/(みました|みます)$/,"みる");
+  word=word.replace(/(にくい|づらい|にくく|やすい|やすく|すぎる|すぎ)$/,"");
   word=word.replace(/(されている|されていた|してしまう|してしまった)$/,"");
   word=word.replace(/(している|していた|されている|してきた|していく)$/,"");
   word=word.replace(/(できない|できなく|できなくて)$/,"できない");
+  // ★ 「〜ました」「〜ます」「〜まし」を語幹に戻す
+  word=word.replace(/(いきました|いきます)$/,"いく");
+  word=word.replace(/(きました|きます|きまし)$/,"くる");
+  word=word.replace(/(ました|まして|ます|ませ|まし)$/,"");
+  word=word.replace(/(でした|です)$/,"");
+  // ★ 「〜んで」「〜んだ」（撥音便）を処理
+  word=word.replace(/(んでいた|んでいる|んでいます|んでいました)$/,"む");
+  word=word.replace(/(んでい|んで)$/,"む");
+  word=word.replace(/(った|って|ってい)$/,"");
   word=word.replace(/(している|していた|してきた)$/,"");
   word=word.replace(/(する|した|して|され|しな|しに|しく|しい)$/,"");
   word=word.replace(/(なって|なった|なる|なり)$/,"");
@@ -528,14 +492,27 @@ function cleanWord(word){
   word=word.replace(/(くて|くない|かった|かる|ければ)$/,"い");
   word=word.replace(/(なくて|なかった|なく)$/,"ない");
   for(let i=0;i<3;i++) word=word.replace(/(が|を|は|に|で|と|も|の|へ|や|か|な|し|く|て|で)$/,"");
-  word=word.replace(/(さん|さ|あさ|んさ|んさん)+$/, "");
+  word=word.replace(/(さん|さ|あさ|んさ|んさん)+$/,"");
   if(!word) return null;
-  if(/^[ぁ-ん]+$/.test(word) && word.length <= 3) return null;
+  // 平仮名のみ3文字以下はnull
+  if(/^[ぁ-ん]+$/.test(word) && word.length<=3) return null;
   return word;
 }
 
+// ★★ isJunkToken 強化版 ★★
 function isJunkToken(word){
-  return /^[ぁ-ん]{1,2}$/.test(word);
+  if(!word) return true;
+  // 1〜2文字の平仮名は除去
+  if(/^[ぁ-ん]{1,2}$/.test(word)) return true;
+  // 動詞・形容詞の途中形（語幹なし）を除去
+  // 「行きま」「流れてきま」「住ん」のような中途形
+  if(/[きぎしじちに][まみ]$/.test(word)) return true;   // 〜きま、〜しま など
+  if(/[んン]$/.test(word) && /^[ぁ-ん]+$/.test(word)) return true; // 平仮名のみで「ん」終わり
+  if(/[てで][いき]$/.test(word)) return true;            // 〜てい、〜でき の途中
+  // 「らドンブラコどん」のような混在ノイズ（平仮名＋カタカナ混在で意味不明）
+  if(/^[ぁ-ん].*[ァ-ン]/.test(word) && word.length<=5) return true;
+  if(/^[ァ-ン].*[ぁ-ん]/.test(word) && word.length<=5) return true;
+  return false;
 }
 
 function stemWord(word){
@@ -575,112 +552,100 @@ function extractWords(text){
   return result;
 }
 
-// ★ テキストを文節境界で分割し、各セグメントを返す
-// 例: "むかしむかしあるところに" → ["むかしむかし", "あるところに"]
+// ★★ splitIntoSegments Safari互換版 ★★
+// 後読みを使わず、文字を走査して助詞・句読点の直後で分割する
 function splitIntoSegments(text){
-  const segments = [];
-  // 句読点・読点・助詞の後ろで区切る
-  // 正規表現で境界を検出して分割
-  const boundaries = /(?<=[はがをにでともへやからまでよりってけどのでながら])|(?<=[、。！？!?\s])/gu;
-  const parts = text.split(boundaries).map(s=>s.trim()).filter(s=>s.length>0);
-  for(const part of parts){
-    if(part.length >= 2) segments.push(part);
+  const PARTICLES = "はがをにでともへやからまでよりってけどのでながら";
+  const PUNCTS    = "、。！？!? \t";
+  const segments  = [];
+  let buf         = "";
+
+  for(let i=0; i<text.length; i++){
+    const ch   = text[i];
+    const next = text[i+1] || "";
+    buf += ch;
+
+    // 句読点・スペースは区切りとして捨てる
+    if(PUNCTS.includes(ch)){
+      const seg = buf.replace(/[、。！？!?\s]+$/,"").trim();
+      if(seg.length>=2) segments.push(seg);
+      buf="";
+      continue;
+    }
+
+    // 助詞の直後で区切る（次の文字が助詞でなければ）
+    const isParticle = PARTICLES.includes(ch);
+    const nextIsParticle = PARTICLES.includes(next);
+    if(isParticle && !nextIsParticle && next && !PUNCTS.includes(next)){
+      // ただし buf全体が短すぎる（2文字以下）なら区切らずに続ける
+      if(buf.trim().length >= 3){
+        segments.push(buf.trim());
+        buf="";
+      }
+    }
   }
-  // 分割できなければ全体を1セグメントとして返す
-  return segments.length > 0 ? segments : [text];
+  // 残りをpendingとして追加
+  if(buf.trim().length>=2) segments.push(buf.trim());
+
+  return segments.length>0 ? segments : [text];
 }
 
-// ★ 1ワードをフローに追加する（emittedWordsチェック付き）
 function emitWordToFlow(word){
-  if(!word || word.length < MIN_WORD_LEN) return;
+  if(!word||word.length<MIN_WORD_LEN) return;
   if(emittedWords.has(word)) return;
-  const now = Date.now();
-  const lastTime = flowLastAdded[word]||0;
-  if(now - lastTime < FLOW_COOLDOWN_MS) return;
+  const now=Date.now();
+  const lastTime=flowLastAdded[word]||0;
+  if(now-lastTime<FLOW_COOLDOWN_MS) return;
   if(flow.some(f=>f.text===word)) return;
-
   emittedWords.add(word);
-  flowLastAdded[word] = now;
-  const weight = words[word] ? words[word].weight : 1;
-  const group  = words[word] ? words[word].group  : Math.floor(Math.random()*COLORS.length);
-  flow.push({
-    text:word, x:canvas.width,
-    y:80+Math.random()*(canvas.height-120),
-    size:calcFlowFontSize(weight),
-    group:group, t:Math.random()*1000, opacity:0
-  });
+  flowLastAdded[word]=now;
+  const weight=words[word]?words[word].weight:1;
+  const group =words[word]?words[word].group :Math.floor(Math.random()*COLORS.length);
+  flow.push({text:word,x:canvas.width,y:80+Math.random()*(canvas.height-120),size:calcFlowFontSize(weight),group:group,t:Math.random()*1000,opacity:0});
   if(flow.length>40) flow.shift();
 }
 
-// ★★ processInterim の全面刷新 ★★
-// 戦略:
-//  1. 前フレームのtranscriptと比較し、「新たに末尾に追加されたテキスト」を特定
-//  2. 新テキストを文節境界で分割
-//  3. 完結したセグメント（後ろに新テキストが続いた = もう伸びない）からのみ単語を抽出してフロー表示
-//  4. 最後尾の未完結セグメントはタイマーで遅延表示（無音ポーズ検出）
 function processInterim(transcript){
-  // 前回から変わっていなければスキップ
-  if(transcript === lastInterimTranscript) return;
-
-  // 新たに末尾に追加されたテキストを求める
-  // ChromeのinterimはほぼpreFixが共通なので前方一致でdiffを取る
-  let newSuffix = transcript;
+  if(transcript===lastInterimTranscript) return;
+  let newSuffix=transcript;
   if(transcript.startsWith(lastInterimTranscript)){
-    newSuffix = transcript.slice(lastInterimTranscript.length);
+    newSuffix=transcript.slice(lastInterimTranscript.length);
   } else {
-    // まれにリセットされることがある（認識エンジンの修正）
-    // その場合は全体を新規として扱い、emittedWordsを部分リセット
-    emittedWords.clear();
-    interimSegments = [];
+    emittedWords.clear(); interimSegments=[];
   }
-  lastInterimTranscript = transcript;
-
-  // 新テキストが空なら何もしない
+  lastInterimTranscript=transcript;
   if(!newSuffix.trim()) return;
-
-  // ポーズタイマーをリセット（喋っている最中なので）
   if(interimFlushTimer){ clearTimeout(interimFlushTimer); interimFlushTimer=null; }
 
-  // transcript全体を文節境界で再分割
-  const allSegments = splitIntoSegments(transcript);
+  const allSegments=splitIntoSegments(transcript);
+  const confirmedSegments=allSegments.slice(0,-1);
+  const pendingSegment=allSegments[allSegments.length-1];
 
-  // 「確定セグメント」= 今回のallSegmentsの末尾以外（末尾は今も伸びている可能性がある）
-  // 前回より増えたセグメントのうち、末尾を除いたものをemit対象とする
-  const confirmedSegments = allSegments.slice(0, -1);
-  const pendingSegment    = allSegments[allSegments.length - 1];
-
-  // 確定セグメントから単語を抽出してemit（まだemitしていないものだけ）
   confirmedSegments.forEach(seg=>{
-    const segKey = seg;  // セグメントテキストをキーとして使う
-    // 既にemit済みのセグメントはスキップ（interimSegmentsで管理）
-    if(interimSegments.includes(segKey)) return;
-    interimSegments.push(segKey);
-    const words_in_seg = extractWords(seg);
-    words_in_seg.forEach(word=>{ emitWordToFlow(word); });
+    if(interimSegments.includes(seg)) return;
+    interimSegments.push(seg);
+    extractWords(seg).forEach(word=>emitWordToFlow(word));
   });
 
-  // 末尾セグメント（pendingSegment）は無音ポーズ後にemit
-  // 300msの沈黙でフラッシュ
-  interimFlushTimer = setTimeout(()=>{
-    interimFlushTimer = null;
+  interimFlushTimer=setTimeout(()=>{
+    interimFlushTimer=null;
     if(!pendingSegment) return;
     if(interimSegments.includes(pendingSegment)) return;
     interimSegments.push(pendingSegment);
-    const words_in_seg = extractWords(pendingSegment);
-    words_in_seg.forEach(word=>{ emitWordToFlow(word); });
-  }, 300);
+    extractWords(pendingSegment).forEach(word=>emitWordToFlow(word));
+  },300);
 }
 
 function processText(text){
   text=cleanInputText(text);
-  let tokens=splitJapanese(text), current=[];
+  let tokens=splitJapanese(text),current=[];
   const now=Date.now();
   tokens.forEach(w=>{
     w=w.trim(); if(!w) return; if(w.length<MIN_WORD_LEN) return;
     let {base,count}=extractRepeats(w); let word=base;
     word=cleanWord(word); if(!word) return;
     if(isJunkToken(word)) return;
-    word=stemWord(word);  if(!word) return;
+    word=stemWord(word); if(!word) return;
     if(word.length<MIN_WORD_LEN) return;
     if(isJunkToken(word)) return;
     if(NORMALIZE[word]) word=NORMALIZE[word];
@@ -712,18 +677,17 @@ function buildNetworkLayout(){
   networkDirty=false;
   let keys=Object.keys(words); if(keys.length===0){ networkNodes=[]; return; }
   let sorted=[...keys].sort((a,b)=>words[b].weight-words[a].weight).slice(0,getMaxWords());
-  let topCount=Math.min(3,sorted.length);
-  let top=sorted.slice(0,topCount), rest=sorted.slice(topCount);
-  let cx=canvas.width/2, cy=canvas.height/2, nodes=[];
-  let centerSpacing=65, centerStartY=cy-(centerSpacing*(topCount-1))/2;
+  let topCount=Math.min(3,sorted.length),top=sorted.slice(0,topCount),rest=sorted.slice(topCount);
+  let cx=canvas.width/2,cy=canvas.height/2,nodes=[];
+  let centerSpacing=65,centerStartY=cy-(centerSpacing*(topCount-1))/2;
   top.forEach((k,i)=>{
     let w=words[k];
     nodes.push({key:k,x:cx,y:centerStartY+i*centerSpacing,size:Math.max(28,Math.min(52,18+w.weight*3.5)),group:w.group,isTop:true,rank:i});
   });
   let radius=Math.min(canvas.width,canvas.height)*0.42;
   rest.forEach((k,i)=>{
-    let angle=(i/rest.length)*Math.PI*2-Math.PI/2, r=radius*(0.8+(i%3)*0.1);
-    let w=words[k], nx=cx+Math.cos(angle)*r, ny=cy+Math.sin(angle)*r, margin=60;
+    let angle=(i/rest.length)*Math.PI*2-Math.PI/2,r=radius*(0.8+(i%3)*0.1);
+    let w=words[k],nx=cx+Math.cos(angle)*r,ny=cy+Math.sin(angle)*r,margin=60;
     nx=Math.max(margin,Math.min(canvas.width-margin,nx));
     ny=Math.max(margin+60,Math.min(canvas.height-margin,ny));
     nodes.push({key:k,x:nx,y:ny,size:Math.max(10,Math.min(28,8+w.weight*1.5)),group:w.group,isTop:false,rank:topCount+i});
@@ -746,7 +710,7 @@ function drawBackground(){
 }
 
 function drawFlow(alpha=1){
-  const now=Date.now(), speed=parseFloat(document.getElementById("speedSlider").value)||2;
+  const now=Date.now(),speed=parseFloat(document.getElementById("speedSlider").value)||2;
   flow.forEach((f,i)=>{
     f.opacity=Math.min(1,(f.opacity||0)+0.04);
     const targetSize=calcFlowFontSize(words[f.text]?words[f.text].weight:1);
@@ -768,7 +732,7 @@ function drawFlow(alpha=1){
 function drawNetwork(){
   if(networkNodes.length===0) return;
   const now=Date.now();
-  const topNodes=networkNodes.filter(n=>n.isTop), restNodes=networkNodes.filter(n=>!n.isTop);
+  const topNodes=networkNodes.filter(n=>n.isTop),restNodes=networkNodes.filter(n=>!n.isTop);
   topNodes.forEach(center=>{
     restNodes.forEach(node=>{
       let s=(edges[center.key+"*"+node.key]||0)+(edges[node.key+"*"+center.key]||0);
@@ -790,14 +754,14 @@ function drawNetwork(){
   }
   ctx.globalAlpha=1;
   restNodes.forEach(node=>{
-    let color=COLORS[node.group], pulse=Math.sin(now*0.001+node.rank)*3;
+    let color=COLORS[node.group],pulse=Math.sin(now*0.001+node.rank)*3;
     ctx.fillStyle=color; ctx.font="500 "+node.size+"px 'Noto Sans JP', sans-serif";
     ctx.shadowColor=color; ctx.shadowBlur=12+pulse;
     ctx.fillText(node.key,node.x-ctx.measureText(node.key).width/2,node.y);
   });
   const centerColors=["#ff5252","#ffd740","#69f0ae"];
   topNodes.forEach((node,i)=>{
-    let color=centerColors[i]||COLORS[node.group], pulse=Math.sin(now*0.0008+i*1.2)*5;
+    let color=centerColors[i]||COLORS[node.group],pulse=Math.sin(now*0.0008+i*1.2)*5;
     ctx.font="900 "+node.size+"px 'Noto Sans JP', sans-serif";
     let tw=ctx.measureText(node.key).width;
     ctx.shadowColor=color; ctx.shadowBlur=40+pulse; ctx.fillStyle=color;
@@ -822,7 +786,7 @@ function loadFile(event){
 }
 
 function clearAll(){
-  words={}; edges={}; flow=[]; fileFlowPool=[];
+  words={}; edges={}; flow={}; flow=[]; fileFlowPool=[];
   networkNodes=[]; networkDirty=true; lastWord="";
   resetInterimState(); isFileMode=false;
   for(const k in flowLastAdded) delete flowLastAdded[k];
@@ -835,11 +799,9 @@ function toggleControls(){
   else { c.style.display="none"; btn.textContent="非表示"; }
 }
 
-// ===== 共通モーダル =====
 function onOverlayClick(e,id){ if(e.target===document.getElementById(id)) closeOverlay(id); }
 function closeOverlay(id){ document.getElementById(id).classList.remove("open"); }
 
-// ===== 集計モーダル =====
 const GROUP_COLORS=["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff","#ea80fc","#ff9800","#76ff03","#40c4ff","#f48fb1","#80cbc4","#ffcc02","#ce93d8","#ef9a9a"];
 function openSummary(){
   const sorted=Object.entries(words).sort((a,b)=>b[1].weight-a[1].weight);
@@ -858,7 +820,6 @@ function openSummary(){
   }
   document.getElementById("summaryOverlay").classList.add("open");
 }
-
 function downloadCSV(){
   const sorted=Object.entries(words).sort((a,b)=>b[1].weight-a[1].weight);
   let csv="#,ワード,出現回数,スコア,グループ,倍率\n";
@@ -872,7 +833,6 @@ function downloadCSV(){
   a.href=url; a.download="livewords_summary.csv"; a.click(); URL.revokeObjectURL(url);
 }
 
-// ===== 設定モーダル =====
 function openSetting(){
   const groups=Object.entries(boostGroups);
   if(groups.length===0){
@@ -880,7 +840,7 @@ function openSetting(){
   } else {
     let html="";
     groups.forEach(([gname,gdata],idx)=>{
-      const rate=groupRates[gname]||1, color=GROUP_COLORS[idx%GROUP_COLORS.length];
+      const rate=groupRates[gname]||1,color=GROUP_COLORS[idx%GROUP_COLORS.length];
       const preview=(gdata.words||[]).slice(0,6).join("・")+((gdata.words||[]).length>6?"…":"");
       html+=`<div class="group-row">
         <div class="group-name" style="color:${color}">${gname}</div>
@@ -893,14 +853,12 @@ function openSetting(){
   }
   document.getElementById("settingOverlay").classList.add("open");
 }
-
 function onRateChange(gname,val){
   const v=parseFloat(val); if(isNaN(v)||v<1) return;
   groupRates[gname]=v; saveRates();
   Object.entries(words).forEach(([word,data])=>{ data.weight=data.count*getBoostRate(word); });
   networkDirty=true;
 }
-
 function resetRates(){
   Object.entries(boostGroups).forEach(([gname,gdata])=>{ groupRates[gname]=gdata.rate||1; });
   saveRates();
