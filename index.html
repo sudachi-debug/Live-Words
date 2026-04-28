@@ -300,7 +300,7 @@ text-align: center;
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.09.001</div>
+<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.09.002</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -394,11 +394,20 @@ let mode            = "flow";
 let recognition;
 let running         = false;
 let lastWord        = "";
-let lastInterimWords = [];
 let emittedWords    = new Set();
 let networkNodes    = [];
 let networkDirty    = true;
 let isFileMode      = false;
+
+// ★ interim用: 前フレームの生テキストと、確定済みセグメントのリスト
+let lastInterimTranscript = "";
+let interimSegments       = [];   // { text, emitted } の配列
+let interimFlushTimer     = null; // 無音ポーズ検出タイマー
+
+// 区切り文字パターン（助詞・助動詞・句読点など文節境界）
+const SEGMENT_BOUNDARY = /[、。！？!?\s]/;
+// 区切り助詞（直後で文節が終わる）
+const BOUNDARY_PARTICLES = /(?:は|が|を|に|で|と|も|の|へ|や|から|まで|より|って|けど|ので|ながら|として|にて)$/;
 
 const canvas = document.getElementById("canvas");
 const ctx    = canvas.getContext("2d");
@@ -450,24 +459,41 @@ function start(){
   recognition=new SR();
   recognition.lang="ja-JP"; recognition.continuous=true; recognition.interimResults=true;
   running=true; updateStatus();
+
   recognition.onresult=(e)=>{
     for(let i=e.resultIndex;i<e.results.length;i++){
       const transcript=e.results[i][0].transcript;
       if(e.results[i].isFinal){
-        lastInterimWords=[];
-        emittedWords.clear();
+        // interim状態をリセットしてfinal処理
+        resetInterimState();
         processText(transcript);
       } else {
         processInterim(transcript);
       }
     }
   };
+
   recognition.onerror=(e)=>{ console.error("recognition error:",e.error); running=false; updateStatus(); };
-  recognition.onend=()=>{ setTimeout(()=>{ if(running) recognition.start(); },200); lastInterimWords=[]; emittedWords.clear(); };
+  recognition.onend=()=>{
+    resetInterimState();
+    setTimeout(()=>{ if(running) recognition.start(); },200);
+  };
   recognition.start();
 }
+
 function stop(){
-  running=false; lastInterimWords=[]; emittedWords.clear(); if(recognition) recognition.stop(); updateStatus();
+  running=false;
+  resetInterimState();
+  if(recognition) recognition.stop();
+  updateStatus();
+}
+
+// ★ interim状態をまとめてリセット
+function resetInterimState(){
+  lastInterimTranscript = "";
+  interimSegments       = [];
+  emittedWords.clear();
+  if(interimFlushTimer){ clearTimeout(interimFlushTimer); interimFlushTimer=null; }
 }
 
 function cleanInputText(text){
@@ -502,10 +528,8 @@ function cleanWord(word){
   word=word.replace(/(くて|くない|かった|かる|ければ)$/,"い");
   word=word.replace(/(なくて|なかった|なく)$/,"ない");
   for(let i=0;i<3;i++) word=word.replace(/(が|を|は|に|で|と|も|の|へ|や|か|な|し|く|て|で)$/,"");
-  // ★ A) 語尾ノイズ除去
   word=word.replace(/(さん|さ|あさ|んさ|んさん)+$/, "");
   if(!word) return null;
-  // ★ ⑤ 平仮名のみ3文字以下はnull
   if(/^[ぁ-ん]+$/.test(word) && word.length <= 3) return null;
   return word;
 }
@@ -551,32 +575,100 @@ function extractWords(text){
   return result;
 }
 
-function processInterim(transcript){
-  const currentWords = extractWords(transcript);
+// ★ テキストを文節境界で分割し、各セグメントを返す
+// 例: "むかしむかしあるところに" → ["むかしむかし", "あるところに"]
+function splitIntoSegments(text){
+  const segments = [];
+  // 句読点・読点・助詞の後ろで区切る
+  // 正規表現で境界を検出して分割
+  const boundaries = /(?<=[はがをにでともへやからまでよりってけどのでながら])|(?<=[、。！？!?\s])/gu;
+  const parts = text.split(boundaries).map(s=>s.trim()).filter(s=>s.length>0);
+  for(const part of parts){
+    if(part.length >= 2) segments.push(part);
+  }
+  // 分割できなければ全体を1セグメントとして返す
+  return segments.length > 0 ? segments : [text];
+}
+
+// ★ 1ワードをフローに追加する（emittedWordsチェック付き）
+function emitWordToFlow(word){
+  if(!word || word.length < MIN_WORD_LEN) return;
+  if(emittedWords.has(word)) return;
   const now = Date.now();
-  currentWords.forEach(word=>{
-    if(lastInterimWords.includes(word)) return;
+  const lastTime = flowLastAdded[word]||0;
+  if(now - lastTime < FLOW_COOLDOWN_MS) return;
+  if(flow.some(f=>f.text===word)) return;
 
-    // ★ B) 平仮名終わり4文字以下カット（「ん」「ー」除外）
-    if(/^[ぁ-ん]+$/.test(word) && !/[んー]$/.test(word) && word.length <= 4) return;
-
-    // ★ ② words未登録かつ4文字未満はスキップ
-    if(!words[word] && word.length < 4) return;
-
-    if(emittedWords.has(word)) return;
-
-    const lastTime=flowLastAdded[word]||0;
-    if(now-lastTime<FLOW_COOLDOWN_MS) return;
-    if(flow.some(f=>f.text===word)) return;
-
-    flowLastAdded[word]=now;
-    emittedWords.add(word);
-    const weight=words[word]?words[word].weight:1;
-    const group=words[word]?words[word].group:Math.floor(Math.random()*COLORS.length);
-    flow.push({text:word,x:canvas.width,y:80+Math.random()*(canvas.height-120),size:calcFlowFontSize(weight),group:group,t:Math.random()*1000,opacity:0});
-    if(flow.length>40) flow.shift();
+  emittedWords.add(word);
+  flowLastAdded[word] = now;
+  const weight = words[word] ? words[word].weight : 1;
+  const group  = words[word] ? words[word].group  : Math.floor(Math.random()*COLORS.length);
+  flow.push({
+    text:word, x:canvas.width,
+    y:80+Math.random()*(canvas.height-120),
+    size:calcFlowFontSize(weight),
+    group:group, t:Math.random()*1000, opacity:0
   });
-  lastInterimWords=currentWords;
+  if(flow.length>40) flow.shift();
+}
+
+// ★★ processInterim の全面刷新 ★★
+// 戦略:
+//  1. 前フレームのtranscriptと比較し、「新たに末尾に追加されたテキスト」を特定
+//  2. 新テキストを文節境界で分割
+//  3. 完結したセグメント（後ろに新テキストが続いた = もう伸びない）からのみ単語を抽出してフロー表示
+//  4. 最後尾の未完結セグメントはタイマーで遅延表示（無音ポーズ検出）
+function processInterim(transcript){
+  // 前回から変わっていなければスキップ
+  if(transcript === lastInterimTranscript) return;
+
+  // 新たに末尾に追加されたテキストを求める
+  // ChromeのinterimはほぼpreFixが共通なので前方一致でdiffを取る
+  let newSuffix = transcript;
+  if(transcript.startsWith(lastInterimTranscript)){
+    newSuffix = transcript.slice(lastInterimTranscript.length);
+  } else {
+    // まれにリセットされることがある（認識エンジンの修正）
+    // その場合は全体を新規として扱い、emittedWordsを部分リセット
+    emittedWords.clear();
+    interimSegments = [];
+  }
+  lastInterimTranscript = transcript;
+
+  // 新テキストが空なら何もしない
+  if(!newSuffix.trim()) return;
+
+  // ポーズタイマーをリセット（喋っている最中なので）
+  if(interimFlushTimer){ clearTimeout(interimFlushTimer); interimFlushTimer=null; }
+
+  // transcript全体を文節境界で再分割
+  const allSegments = splitIntoSegments(transcript);
+
+  // 「確定セグメント」= 今回のallSegmentsの末尾以外（末尾は今も伸びている可能性がある）
+  // 前回より増えたセグメントのうち、末尾を除いたものをemit対象とする
+  const confirmedSegments = allSegments.slice(0, -1);
+  const pendingSegment    = allSegments[allSegments.length - 1];
+
+  // 確定セグメントから単語を抽出してemit（まだemitしていないものだけ）
+  confirmedSegments.forEach(seg=>{
+    const segKey = seg;  // セグメントテキストをキーとして使う
+    // 既にemit済みのセグメントはスキップ（interimSegmentsで管理）
+    if(interimSegments.includes(segKey)) return;
+    interimSegments.push(segKey);
+    const words_in_seg = extractWords(seg);
+    words_in_seg.forEach(word=>{ emitWordToFlow(word); });
+  });
+
+  // 末尾セグメント（pendingSegment）は無音ポーズ後にemit
+  // 300msの沈黙でフラッシュ
+  interimFlushTimer = setTimeout(()=>{
+    interimFlushTimer = null;
+    if(!pendingSegment) return;
+    if(interimSegments.includes(pendingSegment)) return;
+    interimSegments.push(pendingSegment);
+    const words_in_seg = extractWords(pendingSegment);
+    words_in_seg.forEach(word=>{ emitWordToFlow(word); });
+  }, 300);
 }
 
 function processText(text){
@@ -731,8 +823,8 @@ function loadFile(event){
 
 function clearAll(){
   words={}; edges={}; flow=[]; fileFlowPool=[];
-  networkNodes=[]; networkDirty=true; lastWord=""; lastInterimWords=[];
-  emittedWords.clear(); isFileMode=false;
+  networkNodes=[]; networkDirty=true; lastWord="";
+  resetInterimState(); isFileMode=false;
   for(const k in flowLastAdded) delete flowLastAdded[k];
 }
 function toggleMode(){ mode=mode==="flow"?"network":"flow"; networkDirty=true; updateMode(); }
