@@ -1,954 +1,246 @@
 <!DOCTYPE html><html lang="ja"><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LIVE WORDS</title><style>
+<title>LIVE WORDS v0.11.000</title><style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
   * { box-sizing: border-box; }
-body {
-margin: 0;
-background: #060d1a;
-font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
-overflow: hidden;
-}
-#ui {
-position: fixed;
-top: 16px;
-left: 16px;
-z-index: 20;
-display: flex;
-align-items: center;
-gap: 10px;
-flex-wrap: wrap;
-}
-#statusBadge {
-display: flex;
-align-items: center;
-gap: 8px;
-background: rgba(6, 13, 26, 0.75);
-backdrop-filter: blur(14px);
-border: 1px solid rgba(255,255,255,0.08);
-border-radius: 999px;
-padding: 8px 16px;
-color: rgba(255,255,255,0.85);
-font-size: 13px;
-font-weight: 500;
-letter-spacing: 0.02em;
-min-width: 160px;
-}
-#dot {
-width: 9px;
-height: 9px;
-border-radius: 50%;
-background: #555;
-flex-shrink: 0;
-transition: background 0.3s;
-}
-#dot.active {
-background: #00e676;
-box-shadow: 0 0 8px #00e676, 0 0 20px #00e67688;
-animation: pulse 2s ease-in-out infinite;
-}
-@keyframes pulse {
-0%,100% { box-shadow: 0 0 8px #00e676, 0 0 20px #00e67688; }
-50%      { box-shadow: 0 0 4px #00e676, 0 0 10px #00e67644; }
-}
-#btnGroup {
-display: flex;
-gap: 6px;
-background: rgba(6, 13, 26, 0.75);
-backdrop-filter: blur(14px);
-border: 1px solid rgba(255,255,255,0.08);
-border-radius: 12px;
-padding: 6px;
-}
-button {
-border: none;
-border-radius: 8px;
-padding: 8px 16px;
-font-size: 13px;
-font-weight: 600;
-font-family: inherit;
-color: white;
-cursor: pointer;
-letter-spacing: 0.03em;
-transition: opacity 0.15s, transform 0.1s;
-}
-button:active { transform: scale(0.96); }
-button:hover  { opacity: 0.85; }
-.start  { background: linear-gradient(135deg,#00c853,#00e676); }
-.stop   { background: linear-gradient(135deg,#d50000,#ff1744); }
-.toggle {
-background: rgba(255,255,255,0.1);
-border: 1px solid rgba(255,255,255,0.15);
-}
-.toggle.active {
-background: linear-gradient(135deg,#1565c0,#2979ff);
-border-color: transparent;
-}
-#logo {
-position: fixed;
-bottom: 20px;
-left: 50%;
-transform: translateX(-50%);
-font-size: 13px;
-font-weight: 600;
-letter-spacing: 0.2em;
-color: rgba(255,255,255,0.12);
-text-transform: uppercase;
-pointer-events: none;
-z-index: 19;
-white-space: nowrap;
-}
-#btnGroup2 {
-display: flex;
-gap: 6px;
-background: rgba(6, 13, 26, 0.75);
-backdrop-filter: blur(14px);
-border: 1px solid rgba(255,255,255,0.08);
-border-radius: 12px;
-padding: 6px;
-}
-#fileBtn {
-border: none;
-border-radius: 8px;
-padding: 8px 16px;
-font-size: 13px;
-font-weight: 600;
-font-family: inherit;
-color: white;
-cursor: pointer;
-letter-spacing: 0.03em;
-background: linear-gradient(135deg,#6a1b9a,#ab47bc);
-transition: opacity 0.15s, transform 0.1s;
-}
-#fileBtn:active { transform: scale(0.96); }
-#fileBtn:hover  { opacity: 0.85; }
-.clear {
-background: rgba(255,255,255,0.1);
-border: 1px solid rgba(255,255,255,0.15) !important;
-}
-#speedControl {
-display: flex;
-align-items: center;
-gap: 8px;
-background: rgba(6, 13, 26, 0.75);
-backdrop-filter: blur(14px);
-border: 1px solid rgba(255,255,255,0.08);
-border-radius: 12px;
-padding: 8px 14px;
-color: rgba(255,255,255,0.6);
-font-size: 12px;
-font-weight: 500;
-}
-#speedSlider {
--webkit-appearance: none;
-appearance: none;
-width: 90px;
-height: 4px;
-border-radius: 2px;
-background: rgba(255,255,255,0.2);
-outline: none;
-}
-#speedSlider::-webkit-slider-thumb {
--webkit-appearance: none;
-appearance: none;
-width: 14px;
-height: 14px;
-border-radius: 50%;
-background: #2979ff;
-cursor: pointer;
-box-shadow: 0 0 6px #2979ff88;
-}
-canvas { display: block; cursor: default; }
+body { margin: 0; background: #060d1a; font-family: 'Noto Sans JP', sans-serif; overflow: hidden; }
+#ui { position: fixed; top: 16px; left: 16px; z-index: 20; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#statusBadge { display: flex; align-items: center; gap: 8px; background: rgba(6, 13, 26, 0.75); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; padding: 8px 16px; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500; min-width: 160px; }
+#dot { width: 9px; height: 9px; border-radius: 50%; background: #555; transition: background 0.3s; }
+#dot.active { background: #00e676; box-shadow: 0 0 8px #00e676; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+#controls { display: flex; gap: 10px; align-items: center; }
+#btnGroup, #btnGroup2, #speedControl { display: flex; gap: 6px; background: rgba(6, 13, 26, 0.75); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 6px; color: #ccc; font-size: 12px; align-items: center; }
+button { border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: white; cursor: pointer; transition: 0.1s; }
+button:active { transform: scale(0.95); }
+.start { background: linear-gradient(135deg,#00c853,#00e676); }
+.stop { background: linear-gradient(135deg,#d50000,#ff1744); }
+.toggle { background: rgba(255,255,255,0.1); }
+.toggle.active { background: linear-gradient(135deg,#1565c0,#2979ff); }
+input[type="range"] { width: 70px; }
+canvas { display: block; }
 canvas.clickable { cursor: pointer; }
-.overlay {
-display: none;
-position: fixed;
-inset: 0;
-background: rgba(0,0,0,0.6);
-backdrop-filter: blur(6px);
-z-index: 100;
-align-items: center;
-justify-content: center;
-}
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; }
 .overlay.open { display: flex; }
-.modal {
-background: rgba(10,20,40,0.97);
-border: 1px solid rgba(255,255,255,0.12);
-border-radius: 16px;
-padding: 28px;
-width: min(680px, 92vw);
-max-height: 80vh;
-display: flex;
-flex-direction: column;
-gap: 16px;
-}
-.modal h2 {
-margin: 0;
-font-size: 16px;
-font-weight: 700;
-color: rgba(255,255,255,0.9);
-letter-spacing: 0.05em;
-}
-.modal-body {
-overflow-y: auto;
-flex: 1;
-}
-.modal-footer {
-display: flex;
-gap: 8px;
-justify-content: flex-end;
-}
-.modal-footer button { padding: 8px 18px; font-size: 13px; }
-.btn-csv  { background: linear-gradient(135deg,#00838f,#00e5ff); }
-.btn-close { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2) !important; }
-.btn-setting { background: linear-gradient(135deg,#e65100,#ff9800); }
-.btn-reset { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2) !important; font-size:12px; }
-#summaryTable table { width:100%; border-collapse:collapse; font-size:13px; }
-#summaryTable th {
-position: sticky; top: 0;
-background: rgba(10,20,40,0.99);
-color: rgba(255,255,255,0.5);
-font-weight: 600; padding: 8px 10px;
-text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-#summaryTable td { padding:7px 10px; color:rgba(255,255,255,0.85); border-bottom:1px solid rgba(255,255,255,0.05); }
-#summaryTable tr:hover td { background:rgba(255,255,255,0.04); }
-.boost-badge {
-display: inline-block;
-font-size: 10px; font-weight: 700;
-padding: 2px 7px; border-radius: 999px;
-letter-spacing: 0.03em; color: #000;
-}
-.group-row {
-display: flex; align-items: center;
-gap: 12px; padding: 10px 4px;
-border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.group-name { flex: 1; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; }
-.group-words { flex: 2; color: rgba(255,255,255,0.35); font-size: 11px; line-height: 1.6; }
-.rate-input {
-width: 52px; padding: 5px 8px;
-background: rgba(255,255,255,0.08);
-border: 1px solid rgba(255,255,255,0.15);
-border-radius: 6px; color: white;
-font-size: 13px; font-weight: 600; font-family: inherit;
-text-align: center;
-}
-.rate-input:focus { outline: none; border-color: #2979ff; }
-.rate-label { color: rgba(255,255,255,0.4); font-size: 12px; }
-
-/* 文脈表示用スタイル */
-.context-item {
-  margin-bottom: 12px; padding: 12px;
-  background: rgba(255,255,255,0.03);
-  border-radius: 8px; font-size: 14px;
-  line-height: 1.6; color: rgba(255,255,255,0.85);
-  border-left: 3px solid #2979ff;
-}
-.highlight {
-  background: rgba(41, 121, 255, 0.2);
-  color: #2979ff; font-weight: 700;
-  padding: 0 4px; border-radius: 4px;
-}
+.modal { background: #0a1428; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 24px; width: 90%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; }
+.modal-body { overflow-y: auto; flex: 1; margin: 15px 0; color: #fff; }
+.context-item { padding: 10px; border-bottom: 1px solid #222; font-size: 14px; line-height: 1.6; }
+.highlight { color: #00e5ff; font-weight: bold; background: rgba(0,229,255,0.1); padding: 0 2px; }
+#logo { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.1); font-size: 12px; letter-spacing: 2px; }
 </style></head><body>
+
 <div id="ui">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <div id="statusBadge">
-      <span id="dot"></span>
-      <span id="statusText">停止中</span>
-    </div>
-    <button id="toggleControls" onclick="toggleControls()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 12px;font-size:13px;"> 表示 </button>
-  </div>
+  <div id="statusBadge"><span id="dot"></span><span id="statusText">停止中</span></div>
   <div id="controls">
     <div id="btnGroup">
-      <button class="start" id="startBtn" onclick="start()" disabled>読込中...</button>
+      <button class="start" onclick="start()">開始</button>
       <button class="stop" onclick="stop()">停止</button>
-      <button class="toggle" id="toggleBtn" onclick="toggleMode()">共起ON</button>
-      <button class="toggle" id="flowToggleBtn" onclick="toggleFlowOnNetwork()" style="display:none;">文字流れON</button>
+      <button class="toggle" id="modeBtn" onclick="toggleMode()">共起ON</button>
+      <button class="toggle" id="flowBtn" onclick="toggleFlow()" style="display:none;">文字流れON</button>
     </div>
     <div id="btnGroup2">
-      <label id="fileBtn">
-        ファイル解析
-        <input type="file" id="fileInput" accept=".txt" onchange="loadFile(event)" style="display:none;">
+      <label style="cursor:pointer;padding:8px 12px;background:#6a1b9a;border-radius:8px;font-size:13px;font-weight:600;color:white;">
+        解析 <input type="file" accept=".txt" onchange="loadFile(event)" style="display:none;">
       </label>
-      <button class="clear" onclick="clearAll()">クリア</button>
-      <button style="background:linear-gradient(135deg,#00838f,#00e5ff);" onclick="openSummary()">集計</button>
-      <button class="btn-setting" onclick="openSetting()">設定</button>
+      <button style="background:rgba(255,255,255,0.1)" onclick="clearAll()">クリア</button>
     </div>
     <div id="speedControl">
-      速度
-      <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="2">
-      &nbsp;ワード数
-      <input type="range" id="wordSlider" min="5" max="30" step="1" value="15" oninput="onWordSliderChange()">
-      <span id="wordCount">15</span>
+      速度 <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="2">
+      量 <input type="range" id="wordSlider" min="5" max="40" value="15">
     </div>
   </div>
 </div>
 
-<div id="contextOverlay" class="overlay" onclick="onOverlayClick(event,'contextOverlay')">
+<div id="contextOverlay" class="overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal">
-    <h2 id="contextTitle">出現箇所</h2>
-    <div class="modal-body" id="contextBody"></div>
-    <div class="modal-footer">
-      <button class="btn-close" onclick="closeOverlay('contextOverlay')">閉じる</button>
-    </div>
+    <h2 id="ctxTitle" style="color:#00e5ff;margin:0;font-size:18px;"></h2>
+    <div class="modal-body" id="ctxBody"></div>
+    <button onclick="document.getElementById('contextOverlay').classList.remove('open')" style="background:#333">閉じる</button>
   </div>
 </div>
 
-<div id="summaryOverlay" class="overlay" onclick="onOverlayClick(event,'summaryOverlay')">
-  <div class="modal">
-    <h2>ワード集計</h2>
-    <div class="modal-body" id="summaryTable"></div>
-    <div class="modal-footer">
-      <button class="btn-csv" onclick="downloadCSV()">CSVダウンロード</button>
-      <button class="btn-close" onclick="closeOverlay('summaryOverlay')">閉じる</button>
-    </div>
-  </div>
-</div>
-
-<div id="settingOverlay" class="overlay" onclick="onOverlayClick(event,'settingOverlay')">
-  <div class="modal">
-    <h2>グループ倍率設定</h2>
-    <div class="modal-body" id="settingBody"></div>
-    <div class="modal-footer">
-      <button class="btn-reset" onclick="resetRates()">初期値に戻す</button>
-      <button class="btn-close" onclick="closeOverlay('settingOverlay')">閉じる</button>
-    </div>
-  </div>
-</div>
-
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.10.000</div>
+<div id="logo">LIVE WORDS v0.11.000</div>
 <canvas id="canvas"></canvas>
+
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
-const STOP_WORDS = [
-  "えー","あの","まあ","ちょっと","えっと","なるほど",
-  "は","が","を","に","で","と","も","の","へ","や","ね","よ","か","な","けど","から","ので","より","まで","だけ","しか","など","って","たり","ながら",
-  "ている","てい","てる","くい","くて","くな","くし","して","した","する","され","なっ","なり","あり","おり","いく","くる","いる","いた","ある","あっ",
-  "これ","それ","あれ","この","その","あの","ここ","そこ","あそこ","こと","もの","とき","ところ",
-  "そして","また","および","さらに","ただし","なお","つまり","すなわち","したがって","しかし","でも","けれど","ところが","一方","なぜなら",
-  "思う","思った","見る","見た","いう","いった","できる","できた","なる","なった",
-  "です","ます","でした","ました","ません","ない","ため","よう","場合","以上","以下","以外","について","による","において","に関して","に対して",
-  "はい","そう","もう","まず","次に","最後","一つ","二つ","三つ"
-];
-const MIN_WORD_LEN = 2;
-const NORMALIZE = {
-  "参政":"参政党","参政党":"参政党",
-  "立憲":"立憲民主党","立憲民主党":"立憲民主党",
-  "中道":"中道改革連合","中道改革":"中道改革連合",
-  "自民":"自由民主党","自民党":"自由民主党",
-  "維新":"日本維新の会",
-  "子ど":"子ども","子供":"子ども"
-};
+const STOP_WORDS = ["です","ます","ので","から","こと","もの","ため","よう","とき","ところ","あと"];
 
-let boostGroups  = {};
-let groupRates   = {};
-let wordGroupMap = {};
-const LS_KEY      = "livewords_groupRates";
-const LS_FLOW_KEY = "livewords_flowOnNetwork";
-
-// --- 追加: ファイル解析用データ ---
-let sourceSentences = [];   // ファイルの全文章
-let wordToSentenceMap = {}; // ワード(key) -> 文番号Set
-
-let flowOnNetwork = (()=>{
-  const s = localStorage.getItem(LS_FLOW_KEY);
-  return s === null ? false : s === "true";
-})();
-function saveFlowOnNetwork(){ localStorage.setItem(LS_FLOW_KEY, String(flowOnNetwork)); }
-function updateFlowToggleBtn(){
-  const btn = document.getElementById("flowToggleBtn");
-  if(flowOnNetwork){ btn.textContent="文字流れOFF"; btn.classList.add("active"); }
-  else             { btn.textContent="文字流れON";  btn.classList.remove("active"); }
-}
-function toggleFlowOnNetwork(){ flowOnNetwork=!flowOnNetwork; saveFlowOnNetwork(); updateFlowToggleBtn(); }
-
-function buildWordGroupMap(){
-  wordGroupMap={};
-  Object.entries(boostGroups).forEach(([gname,gdata])=>{
-    (gdata.words||[]).forEach(w=>{ wordGroupMap[w]=gname; });
-  });
-}
-function getBoostRate(word){ const g=wordGroupMap[word]; if(!g) return 1; return groupRates[g]||1; }
-function saveRates(){ localStorage.setItem(LS_KEY, JSON.stringify(groupRates)); }
-function loadSavedRates(){ try{ const s=localStorage.getItem(LS_KEY); if(s) return JSON.parse(s); }catch(e){} return null; }
-
-const BASE_FONT_SIZE = 14;
-const MAX_FONT_SIZE  = 42;
-function calcFlowFontSize(weight){ return Math.min(BASE_FONT_SIZE+Math.log1p(weight)*6.5, MAX_FONT_SIZE); }
-
-const FLOW_COOLDOWN_MS = 1000;
-const flowLastAdded    = {};
-
-function getMaxWords(){ const s=document.getElementById("wordSlider"); return s?parseInt(s.value):15; }
-function onWordSliderChange(){
-  document.getElementById("wordCount").textContent=document.getElementById("wordSlider").value;
-  networkDirty=true;
-}
-
-let words        = {};
-let edges        = {};
-let flow         = [];
-let mode         = "flow";
+let words = {}, edges = {}, flow = [], networkNodes = [];
+let mode = "flow", flowOnNetwork = false, running = false;
+let sourceSentences = [], wordToSentenceMap = {};
 let recognition;
-let running      = false;
-let lastWord     = "";
-let emittedWords = new Set();
-let networkNodes = [];
-let networkDirty = true;
-let isFileMode   = false;
-
-let lastInterimTranscript = "";
-let interimSegments       = [];
-let interimFlushTimer     = null;
 
 const canvas = document.getElementById("canvas");
-const ctx    = canvas.getContext("2d");
-function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; networkDirty=true; }
-resize();
-window.onresize=resize;
+const ctx = canvas.getContext("2d");
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.onresize = resize; resize();
 
-function updateStatus(){
-  const dot=document.getElementById("dot"),text=document.getElementById("statusText");
-  if(running){ dot.className="active"; text.textContent="Listening..."; }
-  else        { dot.className="";      text.textContent="停止中"; }
+// --- 解析ロジック (不具合修正版) ---
+function extractWords(text) {
+  // 1. 重複（りんごりんご）の正規化
+  const normalized = text.replace(/([ぁ-んァ-ン一-龥]{2,})\1+/g, "$1");
+  
+  // 2. 簡易分割（句読点と助詞で切るが、語尾を削りすぎない）
+  return normalized.split(/[、。！？\s]+|[はがをにでもと]/)
+    .map(w => w.trim())
+    .filter(w => {
+      if (w.length < 2) return false;
+      if (STOP_WORDS.includes(w)) return false;
+      // 「〜やすい」「〜こと」などの重要語尾が1文字で残らないようチェック
+      if (/^[ぁ-ん]{1,2}$/.test(w)) return false; 
+      return true;
+    });
 }
-function updateMode(){
-  const btn=document.getElementById("toggleBtn"),flowBtn=document.getElementById("flowToggleBtn");
-  if(mode==="flow"){
-    btn.textContent="共起ON"; btn.classList.remove("active"); flowBtn.style.display="none";
-  } else {
-    btn.textContent="共起OFF"; btn.classList.add("active"); flowBtn.style.display=""; updateFlowToggleBtn();
+
+function processText(text) {
+  const tokens = extractWords(text);
+  tokens.forEach(w => {
+    if(!words[w]) words[w] = {count:0, weight:0, group:Math.floor(Math.random()*5)};
+    words[w].count++;
+    words[w].weight = words[w].count; // ここで重みが増える＝サイズが大きくなる
+    
+    // 流れ文字の追加
+    if (!flow.some(f => f.text === w)) {
+      flow.push({
+        text: w, x: canvas.width, y: 100 + Math.random() * (canvas.height - 200),
+        size: 14, group: words[w].group, opacity: 0
+      });
+    }
+  });
+  
+  // 共起関係
+  for(let i=0; i<tokens.length; i++){
+    for(let j=i+1; j<tokens.length; j++){
+      const k = tokens[i] < tokens[j] ? tokens[i]+"*"+tokens[j] : tokens[j]+"*"+tokens[i];
+      edges[k] = (edges[k]||0) + 1;
+    }
   }
 }
 
-fetch("boost.json")
-  .then(r=>r.json())
-  .then(data=>{
-    boostGroups=data.groups||{};
-    const saved=loadSavedRates();
-    Object.entries(boostGroups).forEach(([gname,gdata])=>{
-      groupRates[gname]=(saved&&saved[gname]!=null)?saved[gname]:(gdata.rate||1);
-    });
-    buildWordGroupMap();
-    const btn=document.getElementById("startBtn"); btn.textContent="開始"; btn.disabled=false;
-  })
-  .catch(()=>{
-    console.warn("boost.json が読み込めませんでした。BOOSTなしで起動します。");
-    const btn=document.getElementById("startBtn"); btn.textContent="開始"; btn.disabled=false;
-  });
-
-function start(){
-  if(running) return;
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){ alert("このブラウザは音声認識に対応していません"); return; }
-  recognition=new SR();
-  recognition.lang="ja-JP"; recognition.continuous=true; recognition.interimResults=true;
-  running=true; updateStatus();
-  recognition.onresult=(e)=>{
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const transcript=e.results[i][0].transcript;
-      if(e.results[i].isFinal){ resetInterimState(); processText(transcript); }
-      else { processInterim(transcript); }
+// --- 音声認識 ---
+function start() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return alert("非対応ブラウザ");
+  recognition = new SR();
+  recognition.lang = "ja-JP"; recognition.continuous = true; recognition.interimResults = true;
+  recognition.onresult = (e) => {
+    for(let i=e.resultIndex; i<e.results.length; i++) {
+      if(e.results[i].isFinal) processText(e.results[i][0].transcript);
     }
   };
-  recognition.onerror=(e)=>{ console.error("recognition error:",e.error); running=false; updateStatus(); };
-  recognition.onend=()=>{ resetInterimState(); setTimeout(()=>{ if(running) recognition.start(); },200); };
-  recognition.start();
+  recognition.start(); running = true; updateUI();
 }
-function stop(){ running=false; resetInterimState(); if(recognition) recognition.stop(); updateStatus(); }
-function resetInterimState(){
-  lastInterimTranscript=""; interimSegments=[]; emittedWords.clear();
-  if(interimFlushTimer){ clearTimeout(interimFlushTimer); interimFlushTimer=null; }
+function stop() { if(recognition) recognition.stop(); running = false; updateUI(); }
+
+function updateUI() {
+  document.getElementById("dot").className = running ? "active" : "";
+  document.getElementById("statusText").textContent = running ? "Listening..." : "停止中";
+  document.getElementById("modeBtn").className = mode === "network" ? "toggle active" : "toggle";
+  document.getElementById("flowBtn").style.display = mode === "network" ? "block" : "none";
 }
 
-function cleanInputText(text){
-  return text
-    .replace(/[「」『』""''（）()［］\[\]【】〔〕]/g," ")
-    .replace(/[0-9０-９]+[,，]?[0-9０-９]*/g," ")
-    .replace(/[～〜~\-－―]/g," ")
-    .replace(/\n/g,"。")
-    .replace(/[!"#$%&'*+\/<=>@^_`{|}\\]/g," ");
-}
+function toggleMode() { mode = mode === "flow" ? "network" : "flow"; updateUI(); }
+function toggleFlow() { flowOnNetwork = !flowOnNetwork; document.getElementById("flowBtn").className = flowOnNetwork ? "toggle active" : "toggle"; }
 
-function splitJapanese(text){
-  return text
-    .replace(/[、。！？!?]/g," ")
-    .replace(/(は|が|を|に|で|と|の|へ|や|ね|よ|か|な|し)/g,"$1 ")
-    .replace(/(する|した|して|している|いる|いた|なる|なった|ある|あった)/g,"$1 ")
-    .replace(/(ため|こと|もの|よう|場合|ところ|とき)/g," ")
-    .replace(/([ぁ-んァ-ンー一-龥ａ-ｚＡ-Ｚa-zA-Z]{2,})/g,"$1 ")
-    .split(/\s+/);
-}
+// --- 描画ロジック ---
+function draw() {
+  ctx.fillStyle = "#060d1a"; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const speed = parseFloat(document.getElementById("speedSlider").value);
 
-function cleanWord(word){
-  word=word.replace(/(いらっしゃいます|いらっしゃいました)$/,"");
-  word=word.replace(/(させていただきます|させていただきました)$/,"");
-  word=word.replace(/(していただきます|していただきました)$/,"");
-  word=word.replace(/(でございます|でございました)$/,"");
-  word=word.replace(/(ておりました|ておりまして|ております)$/,"");
-  word=word.replace(/(てしまいました|てしまいます)$/,"");
-  word=word.replace(/(てしまった|てしまう)$/,"");
-  word=word.replace(/(されていました|されています)$/,"");
-  word=word.replace(/(していました|しています)$/,"");
-  word=word.replace(/(できました|できます)$/,"でき");
-  word=word.replace(/(なりました|なります)$/,"なる");
-  word=word.replace(/(ありました|あります)$/,"ある");
-  word=word.replace(/(いました|います)$/,"いる");
-  word=word.replace(/(きました|きます)$/,"くる");
-  word=word.replace(/(みました|みます)$/,"みる");
-  word=word.replace(/(にくい|づらい|にくく|やすい|やすく|すぎる|すぎ)$/,"");
-  word=word.replace(/(されている|されていた|してしまう|してしまった)$/,"");
-  word=word.replace(/(している|していた|されている|してきた|していく)$/,"");
-  word=word.replace(/(できない|できなく|できなくて)$/,"できない");
-  word=word.replace(/(いきました|いきます)$/,"いく");
-  word=word.replace(/(きました|きます|きまし)$/,"くる");
-  word=word.replace(/(ました|まして|ます|ませ|まし)$/,"");
-  word=word.replace(/(でした|です)$/,"");
-  word=word.replace(/(んでいた|んでいる|んでいます|んでいました)$/,"む");
-  word=word.replace(/(んでい|んで)$/,"む");
-  word=word.replace(/(った|って|ってい)$/,"");
-  word=word.replace(/(している|していた|してきた)$/,"");
-  word=word.replace(/(する|した|して|され|しな|しに|しく|しい)$/,"");
-  word=word.replace(/(なって|なった|なる|なり)$/,"");
-  word=word.replace(/(あって|あった|ある|あり)$/,"");
-  word=word.replace(/(いって|いった|いく|いき)$/,"");
-  word=word.replace(/(くて|くない|かった|かる|ければ)$/,"い");
-  word=word.replace(/(なくて|なかった|なく)$/,"ない");
-  for(let i=0;i<3;i++) word=word.replace(/(が|を|は|に|で|と|も|の|へ|や|か|な|し|く|て|で)$/,"");
-  word=word.replace(/(さん|さ|あさ|んさ|んさん)+$/,"");
-  if(!word) return null;
-  if(/^[ぁ-ん]+$/.test(word) && word.length<=3) return null;
-  return word;
-}
+  // 文字流れの更新・描画
+  flow.forEach((f, i) => {
+    f.x -= speed; f.opacity = Math.min(1, f.opacity + 0.05);
+    // 単語の現在のカウントに合わせてサイズを膨らませる
+    const targetSize = 14 + (words[f.text]?.weight || 0) * 2;
+    f.size += (targetSize - f.size) * 0.1;
 
-function isJunkToken(word){
-  if(!word) return true;
-  if(/^[ぁ-ん]{1,2}$/.test(word)) return true;
-  if(/[きぎしじちに][まみ]$/.test(word)) return true;
-  if(/[んン]$/.test(word) && /^[ぁ-ん]+$/.test(word)) return true;
-  if(/[てで][いき]$/.test(word)) return true;
-  if(/^[ぁ-ん].*[ァ-ン]/.test(word) && word.length<=5) return true;
-  if(/^[ァ-ン].*[ぁ-ん]/.test(word) && word.length<=5) return true;
-  return false;
-}
-
-function stemWord(word){
-  word=word.replace(/なくて$/,"ない");
-  word=word.replace(/して$/,"する");
-  word=word.replace(/している$/,"する");
-  word=word.replace(/できて$/,"できる");
-  word=word.replace(/くて$/,"い");
-  if(word.match(/(について|において|に対して|による|に関して)$/)) return null;
-  return word;
-}
-
-function extractRepeats(word){
-  for(let len=2;len<=word.length/2;len++){
-    let unit=word.slice(0,len),count=0,pos=0;
-    while(word.slice(pos,pos+len)===unit){ count++; pos+=len; }
-    if(count>=2) return {base:unit,count:count};
-  }
-  return {base:word,count:1};
-}
-
-function extractWords(text){
-  text=cleanInputText(text);
-  const result=[];
-  splitJapanese(text).forEach(w=>{
-    w=w.trim(); if(!w) return; if(w.length<MIN_WORD_LEN) return;
-    let {base}=extractRepeats(w); let word=base;
-    word=cleanWord(word); if(!word) return;
-    if(isJunkToken(word)) return;
-    word=stemWord(word); if(!word) return;
-    if(word.length<MIN_WORD_LEN) return;
-    if(isJunkToken(word)) return;
-    if(NORMALIZE[word]) word=NORMALIZE[word];
-    if(STOP_WORDS.includes(word)) return;
-    if(!result.includes(word)) result.push(word);
+    ctx.globalAlpha = f.opacity * (mode === "flow" ? 1 : (flowOnNetwork ? 0.3 : 0));
+    ctx.fillStyle = COLORS[f.group];
+    ctx.font = `bold ${f.size}px 'Noto Sans JP'`;
+    ctx.fillText(f.text, f.x, f.y);
+    if (f.x < -200) flow.splice(i, 1);
   });
-  return result;
-}
+  ctx.globalAlpha = 1;
 
-function splitIntoSegments(text){
-  const PARTICLES = "はがをにでともへやからまでよりってけどのでながら";
-  const PUNCTS    = "、。！？!? \t";
-  const segments  = [];
-  let buf         = "";
-  for(let i=0; i<text.length; i++){
-    const ch   = text[i];
-    const next = text[i+1] || "";
-    buf += ch;
-    if(PUNCTS.includes(ch)){
-      const seg = buf.replace(/[、。！？!?\s]+$/,"").trim();
-      if(seg.length>=2) segments.push(seg);
-      buf="";
-      continue;
-    }
-    const isParticle = PARTICLES.includes(ch);
-    const nextIsParticle = PARTICLES.includes(next);
-    if(isParticle && !nextIsParticle && next && !PUNCTS.includes(next)){
-      if(buf.trim().length >= 3){ segments.push(buf.trim()); buf=""; }
-    }
-  }
-  if(buf.trim().length>=2) segments.push(buf.trim());
-  return segments.length>0 ? segments : [text];
-}
-
-function emitWordToFlow(word){
-  if(!word||word.length<MIN_WORD_LEN) return;
-  if(emittedWords.has(word)) return;
-  const now=Date.now();
-  const lastTime=flowLastAdded[word]||0;
-  if(now-lastTime<FLOW_COOLDOWN_MS) return;
-  if(flow.some(f=>f.text===word)) return;
-  emittedWords.add(word);
-  flowLastAdded[word]=now;
-  const weight=words[word]?words[word].weight:1;
-  const group =words[word]?words[word].group :Math.floor(Math.random()*COLORS.length);
-  flow.push({text:word,x:canvas.width,y:80+Math.random()*(canvas.height-120),size:calcFlowFontSize(weight),group:group,t:Math.random()*1000,opacity:0});
-  if(flow.length>40) flow.shift();
-}
-
-function processInterim(transcript){
-  if(transcript===lastInterimTranscript) return;
-  let newSuffix=transcript;
-  if(transcript.startsWith(lastInterimTranscript)){
-    newSuffix=transcript.slice(lastInterimTranscript.length);
-  } else {
-    emittedWords.clear(); interimSegments=[];
-  }
-  lastInterimTranscript=transcript;
-  if(!newSuffix.trim()) return;
-  if(interimFlushTimer){ clearTimeout(interimFlushTimer); interimFlushTimer=null; }
-  const allSegments=splitIntoSegments(transcript);
-  const confirmedSegments=allSegments.slice(0,-1);
-  const pendingSegment=allSegments[allSegments.length-1];
-  confirmedSegments.forEach(seg=>{
-    if(interimSegments.includes(seg)) return;
-    interimSegments.push(seg);
-    extractWords(seg).forEach(word=>emitWordToFlow(word));
-  });
-  interimFlushTimer=setTimeout(()=>{
-    interimFlushTimer=null;
-    if(!pendingSegment) return;
-    if(interimSegments.includes(pendingSegment)) return;
-    interimSegments.push(pendingSegment);
-    extractWords(pendingSegment).forEach(word=>emitWordToFlow(word));
-  },300);
-}
-
-function processText(text){
-  text=cleanInputText(text);
-  let tokens=splitJapanese(text),current=[];
-  const now=Date.now();
-  tokens.forEach(w=>{
-    w=w.trim(); if(!w) return; if(w.length<MIN_WORD_LEN) return;
-    let {base,count}=extractRepeats(w); let word=base;
-    word=cleanWord(word); if(!word) return;
-    if(isJunkToken(word)) return;
-    word=stemWord(word); if(!word) return;
-    if(word.length<MIN_WORD_LEN) return;
-    if(isJunkToken(word)) return;
-    if(NORMALIZE[word]) word=NORMALIZE[word];
-    if(STOP_WORDS.includes(word)) return;
-    if(word===lastWord) return;
-    lastWord=word;
-    if(!words[word]) words[word]={count:0,weight:0,group:Math.floor(Math.random()*COLORS.length)};
-    words[word].count+=count;
-    words[word].weight=words[word].count*getBoostRate(word);
-    current.push(word);
-    const threshold=isFileMode?3:1;
-    if(words[word].count<threshold) return;
-    const lastTime=flowLastAdded[word]||0;
-    if(now-lastTime<FLOW_COOLDOWN_MS) return;
-    flowLastAdded[word]=now;
-    if(flow.some(f=>f.text===word)) return;
-    flow.push({text:word,x:canvas.width,y:80+Math.random()*(canvas.height-120),size:calcFlowFontSize(words[word].weight),group:words[word].group,t:Math.random()*1000,opacity:0});
-    if(flow.length>40) flow.shift();
-    networkDirty=true;
-  });
-  current.forEach(a=>{ current.forEach(b=>{ if(a!==b){ let k=a+"*"+b; edges[k]=(edges[k]||0)+1; } }); });
-  if(Object.keys(words).length>getMaxWords()){
-    let sorted=Object.entries(words).sort((a,b)=>a[1].weight-b[1].weight);
-    delete words[sorted[0][0]]; networkDirty=true;
-  }
-}
-
-function buildNetworkLayout(){
-  networkDirty=false;
-  let keys=Object.keys(words); if(keys.length===0){ networkNodes=[]; return; }
-  let sorted=[...keys].sort((a,b)=>words[b].weight-words[a].weight).slice(0,getMaxWords());
-  let topCount=Math.min(3,sorted.length),top=sorted.slice(0,topCount),rest=sorted.slice(topCount);
-  let cx=canvas.width/2,cy=canvas.height/2,nodes=[];
-  let centerSpacing=65,centerStartY=cy-(centerSpacing*(topCount-1))/2;
-  top.forEach((k,i)=>{
-    let w=words[k];
-    nodes.push({key:k,x:cx,y:centerStartY+i*centerSpacing,size:Math.max(28,Math.min(52,18+w.weight*3.5)),group:w.group,isTop:true,rank:i});
-  });
-  let radius=Math.min(canvas.width,canvas.height)*0.42;
-  rest.forEach((k,i)=>{
-    let angle=(i/rest.length)*Math.PI*2-Math.PI/2,r=radius*(0.8+(i%3)*0.1);
-    let w=words[k],nx=cx+Math.cos(angle)*r,ny=cy+Math.sin(angle)*r,margin=60;
-    nx=Math.max(margin,Math.min(canvas.width-margin,nx));
-    ny=Math.max(margin+60,Math.min(canvas.height-margin,ny));
-    nodes.push({key:k,x:nx,y:ny,size:Math.max(10,Math.min(28,8+w.weight*1.5)),group:w.group,isTop:false,rank:topCount+i});
-  });
-  networkNodes=nodes;
-}
-
-function draw(){
-  drawBackground();
-  if(mode==="flow"){ drawFlow(); }
-  else { 
-    if(networkDirty) buildNetworkLayout(); 
-    if(flowOnNetwork) drawFlow(0.002); 
-    drawNetwork(); 
-  }
+  if (mode === "network") drawNetwork();
   requestAnimationFrame(draw);
 }
-draw();
 
-function drawBackground(){
-  let grad=ctx.createRadialGradient(canvas.width*0.5,canvas.height*0.4,0,canvas.width*0.5,canvas.height*0.5,canvas.width*0.8);
-  grad.addColorStop(0,"#0d1b2a"); grad.addColorStop(1,"#060d1a");
-  ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
-}
-
-function drawFlow(alpha=1){
-  const now=Date.now(),speed=parseFloat(document.getElementById("speedSlider").value)||2;
-  flow.forEach((f,i)=>{
-    f.opacity=Math.min(1,(f.opacity||0)+0.04);
-    const targetSize=calcFlowFontSize(words[f.text]?words[f.text].weight:1);
-    f.size=f.size+(targetSize-f.size)*0.02;
-    ctx.globalAlpha=f.opacity*alpha;
-    ctx.fillStyle=COLORS[f.group];
-    ctx.font="600 "+Math.round(f.size)+"px 'Noto Sans JP', sans-serif";
-    ctx.shadowColor=COLORS[f.group]; ctx.shadowBlur=18+Math.sin(now*0.002+f.t)*6;
-    ctx.fillText(f.text,f.x,f.y);
-    f.y+=Math.sin(now*0.0015+f.t)*0.4; f.x-=speed+f.size*0.02;
-    if(f.x<-200){
-      if(fileFlowPool.length>0){ f.x=canvas.width+Math.random()*200; f.y=120+Math.random()*(canvas.height-200); f.opacity=0; }
-      else flow.splice(i,1);
-    }
+function drawNetwork() {
+  const maxWords = parseInt(document.getElementById("wordSlider").value);
+  const sorted = Object.entries(words).sort((a,b) => b[1].weight - a[1].weight).slice(0, maxWords);
+  
+  networkNodes = sorted.map(([text, data], i) => {
+    const angle = (i / sorted.length) * Math.PI * 2;
+    const r = Math.min(canvas.width, canvas.height) * 0.35;
+    return {
+      text, x: canvas.width/2 + Math.cos(angle)*r, y: canvas.height/2 + Math.sin(angle)*r,
+      size: 16 + data.weight * 3, color: COLORS[data.group]
+    };
   });
-  ctx.shadowBlur=0; ctx.globalAlpha=1;
-}
 
-function drawNetwork(){
-  if(networkNodes.length===0) return;
-  const now=Date.now();
-  const topNodes=networkNodes.filter(n=>n.isTop),restNodes=networkNodes.filter(n=>!n.isTop);
-  topNodes.forEach(center=>{
-    restNodes.forEach(node=>{
-      let s=(edges[center.key+"*"+node.key]||0)+(edges[node.key+"*"+center.key]||0);
-      ctx.globalAlpha=Math.min(0.55,0.25+s*0.08);
-      let grad=ctx.createLinearGradient(center.x,center.y,node.x,node.y);
-      grad.addColorStop(0,COLORS[center.group]); grad.addColorStop(1,COLORS[node.group]);
-      ctx.strokeStyle=grad; ctx.lineWidth=Math.max(0.5,Math.min(4,s*0.4));
-      ctx.beginPath(); ctx.moveTo(center.x,center.y); ctx.lineTo(node.x,node.y); ctx.stroke();
-    });
-  });
-  for(let i=0;i<topNodes.length;i++){
-    for(let j=i+1;j<topNodes.length;j++){
-      let a=topNodes[i],b=topNodes[j];
-      let s=(edges[a.key+"*"+b.key]||0)+(edges[b.key+"*"+a.key]||0);
-      ctx.globalAlpha=Math.min(0.4,0.15+s*0.05);
-      ctx.strokeStyle="#ff5252"; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
-    }
-  }
-  ctx.globalAlpha=1;
-  restNodes.forEach(node=>{
-    let color=COLORS[node.group],pulse=Math.sin(now*0.001+node.rank)*3;
-    ctx.fillStyle=color; ctx.font="500 "+node.size+"px 'Noto Sans JP', sans-serif";
-    ctx.shadowColor=color; ctx.shadowBlur=12+pulse;
-    ctx.fillText(node.key,node.x-ctx.measureText(node.key).width/2,node.y);
-  });
-  const centerColors=["#ff5252","#ffd740","#69f0ae"];
-  topNodes.forEach((node,i)=>{
-    let color=centerColors[i]||COLORS[node.group],pulse=Math.sin(now*0.0008+i*1.2)*5;
-    ctx.font="900 "+node.size+"px 'Noto Sans JP', sans-serif";
-    let tw=ctx.measureText(node.key).width;
-    ctx.shadowColor=color; ctx.shadowBlur=40+pulse; ctx.fillStyle=color;
-    ctx.fillText(node.key,node.x-tw/2,node.y);
-    ctx.shadowBlur=0; ctx.globalAlpha=0.15; ctx.fillStyle="white";
-    ctx.fillText(node.key,node.x-tw/2,node.y); ctx.globalAlpha=1;
-  });
-  ctx.shadowBlur=0;
-}
-
-let fileFlowPool=[];
-function loadFile(event){
-  const file=event.target.files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=(e)=>{
-    const text=e.target.result; isFileMode=true; clearAll();
-    
-    // 文章単位で分割して保存
-    sourceSentences = text.split(/[。！？\n]+/).filter(s => s.trim().length > 1);
-    wordToSentenceMap = {};
-
-    sourceSentences.forEach((sentence, sIdx) => {
-      const tokens = extractWords(sentence);
-      tokens.forEach(w => {
-        // 出現頻度集計
-        if(!words[w]) words[w] = {count:0, weight:0, group:Math.floor(Math.random()*COLORS.length)};
-        words[w].count += 1;
-        // 文へのインデックス作成
-        if(!wordToSentenceMap[w]) wordToSentenceMap[w] = new Set();
-        wordToSentenceMap[w].add(sIdx);
-      });
-      // 文内での共起関係
-      for(let i=0; i<tokens.length; i++){
-        for(let j=i+1; j<tokens.length; j++){
-          const k = tokens[i] < tokens[j] ? tokens[i]+"*"+tokens[j] : tokens[j]+"*"+tokens[i];
-          edges[k] = (edges[k]||0) + 1;
-        }
+  // 線
+  ctx.strokeStyle = "rgba(255,255,255,0.1)";
+  networkNodes.forEach((n1, i) => {
+    networkNodes.slice(i+1).forEach(n2 => {
+      const pair = n1.text < n2.text ? n1.text+"*"+n2.text : n2.text+"*"+n1.text;
+      if (edges[pair]) {
+        ctx.lineWidth = Math.min(5, edges[pair]);
+        ctx.beginPath(); ctx.moveTo(n1.x, n1.y); ctx.lineTo(n2.x, n2.y); ctx.stroke();
       }
     });
+  });
 
-    // 重み更新
-    Object.keys(words).forEach(w => { words[w].weight = words[w].count * getBoostRate(w); });
+  // 円と文字
+  networkNodes.forEach(n => {
+    ctx.fillStyle = n.color;
+    ctx.font = `bold ${n.size}px 'Noto Sans JP'`;
+    ctx.textAlign = "center";
+    ctx.shadowBlur = 10; ctx.shadowColor = n.color;
+    ctx.fillText(n.text, n.x, n.y);
+    ctx.shadowBlur = 0;
+  });
+}
 
-    // フィルタリング（上位のみ表示）
-    const sortedKeys = Object.entries(words).sort((a,b)=>b[1].weight - a[1].weight).slice(0, getMaxWords());
-    const newWords = {};
-    sortedKeys.forEach(([k,v]) => newWords[k] = v);
-    words = newWords;
-
-    fileFlowPool=flow.map(f=>({...f})); 
-    mode="network"; networkDirty=true; updateMode();
+// --- ファイル連携 & クリック ---
+function loadFile(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const text = ev.target.result;
+    sourceSentences = text.split(/[。！？\n]+/).filter(s => s.length > 1);
+    wordToSentenceMap = {}; words = {}; edges = {};
+    sourceSentences.forEach((s, idx) => {
+      const tokens = extractWords(s);
+      tokens.forEach(t => {
+        if(!words[t]) words[t] = {count:0, weight:0, group:Math.floor(Math.random()*5)};
+        words[t].count++; words[t].weight = words[t].count;
+        if(!wordToSentenceMap[t]) wordToSentenceMap[t] = new Set();
+        wordToSentenceMap[t].add(idx);
+      });
+      processText(s); // 共起計算
+    });
+    mode = "network"; updateUI();
   };
-  reader.readAsText(file,"UTF-8"); event.target.value="";
+  reader.readAsText(file);
 }
 
-// --- 追加: クリックイベント ---
-canvas.addEventListener('click', (e) => {
-  if (mode !== "network" || networkNodes.length === 0) return;
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-
-  // 近いノードを検索
-  const hit = networkNodes.find(n => {
-    const dx = mx - n.x;
-    const dy = my - (n.y - n.size/2);
-    return Math.sqrt(dx*dx + dy*dy) < n.size * 1.2;
-  });
-
-  if (hit) showContext(hit.key);
-});
-
-// マウス移動でカーソル変更
-canvas.addEventListener('mousemove', (e) => {
+canvas.onclick = (e) => {
   if (mode !== "network") return;
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  const isOver = networkNodes.some(n => {
-    const dx = mx - n.x;
-    const dy = my - (n.y - n.size/2);
-    return Math.sqrt(dx*dx + dy*dy) < n.size * 1.2;
-  });
-  canvas.className = isOver ? "clickable" : "";
-});
-
-function showContext(word) {
-  const indices = wordToSentenceMap[word];
-  if (!indices || indices.size === 0) return;
-  
-  document.getElementById("contextTitle").textContent = `「${word}」の出現箇所 (${indices.size}件)`;
-  let html = "";
-  Array.from(indices).forEach(idx => {
-    const sentence = sourceSentences[idx];
-    const highlighted = sentence.replace(new RegExp(`(${word})`, 'g'), '<span class="highlight">$1</span>');
-    html += `<div class="context-item">${highlighted}</div>`;
-  });
-  document.getElementById("contextBody").innerHTML = html;
-  document.getElementById("contextOverlay").classList.add("open");
-}
-
-function clearAll(){
-  words={}; edges={}; flow=[]; fileFlowPool=[];
-  sourceSentences=[]; wordToSentenceMap={}; // 追加
-  networkNodes=[]; networkDirty=true; lastWord="";
-  resetInterimState(); isFileMode=false;
-  for(const k in flowLastAdded) delete flowLastAdded[k];
-}
-function toggleMode(){ mode=mode==="flow"?"network":"flow"; networkDirty=true; updateMode(); }
-updateStatus(); updateMode();
-function toggleControls(){
-  const c=document.getElementById("controls"),btn=document.getElementById("toggleControls");
-  if(c.style.display==="none"){ c.style.display="block"; btn.textContent=" 表示 "; }
-  else { c.style.display="none"; btn.textContent="非表示"; }
-}
-
-function onOverlayClick(e,id){ if(e.target===document.getElementById(id)) closeOverlay(id); }
-function closeOverlay(id){ document.getElementById(id).classList.remove("open"); }
-
-const GROUP_COLORS=["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff","#ea80fc","#ff9800","#76ff03","#40c4ff","#f48fb1","#80cbc4","#ffcc02","#ce93d8","#ef9a9a"];
-function openSummary(){
-  const sorted=Object.entries(words).sort((a,b)=>b[1].weight-a[1].weight);
-  if(sorted.length===0){
-    document.getElementById("summaryTable").innerHTML='<p style="color:rgba(255,255,255,0.4);font-size:13px;padding:12px 0;">データがありません</p>';
-  } else {
-    let html='<table><thead><tr><th>#</th><th>ワード</th><th>出現回数</th><th>スコア</th><th>グループ</th></tr></thead><tbody>';
-    sorted.forEach(([word,data],i)=>{
-      const gname=wordGroupMap[word]||"";
-      const gidx=gname?Object.keys(boostGroups).indexOf(gname):-1;
-      const badge=gname?`<span class="boost-badge" style="background:${GROUP_COLORS[gidx%GROUP_COLORS.length]}">${gname} ×${groupRates[gname]}</span>`:"";
-      html+=`<tr><td style="color:rgba(255,255,255,0.35)">${i+1}</td><td>${word}</td><td style="text-align:center">${data.count}</td><td style="text-align:center">${data.weight}</td><td>${badge}</td></tr>`;
-    });
-    html+='</tbody></table>';
-    document.getElementById("summaryTable").innerHTML=html;
+  const hit = networkNodes.find(n => Math.hypot(n.x - e.clientX, n.y - e.clientY) < 30);
+  if (hit) {
+    const idxs = wordToSentenceMap[hit.text];
+    if (!idxs) return;
+    document.getElementById("ctxTitle").textContent = `「${hit.text}」を含む文`;
+    document.getElementById("ctxBody").innerHTML = Array.from(idxs).map(i => 
+      `<div class="context-item">${sourceSentences[i].replace(hit.text, `<span class="highlight">${hit.text}</span>`)}</div>`
+    ).join("");
+    document.getElementById("contextOverlay").classList.add("open");
   }
-  document.getElementById("summaryOverlay").classList.add("open");
-}
-function downloadCSV(){
-  const sorted=Object.entries(words).sort((a,b)=>b[1].weight-a[1].weight);
-  let csv="#,ワード,出現回数,スコア,グループ,倍率\n";
-  sorted.forEach(([word,data],i)=>{
-    const gname=wordGroupMap[word]||"";
-    const rate=gname?(groupRates[gname]||1):"";
-    csv+=`${i+1},${word},${data.count},${data.weight},${gname},${rate}\n`;
-  });
-  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
-  const url=URL.createObjectURL(blob); const a=document.createElement("a");
-  a.href=url; a.download="livewords_summary.csv"; a.click(); URL.revokeObjectURL(url);
-}
+};
 
-function openSetting(){
-  const groups=Object.entries(boostGroups);
-  if(groups.length===0){
-    document.getElementById("settingBody").innerHTML='<p style="color:rgba(255,255,255,0.4);font-size:13px;padding:12px 0;">boost.json が読み込まれていません</p>';
-  } else {
-    let html="";
-    groups.forEach(([gname,gdata],idx)=>{
-      const rate=groupRates[gname]||1,color=GROUP_COLORS[idx%GROUP_COLORS.length];
-      const preview=(gdata.words||[]).slice(0,6).join("・")+((gdata.words||[]).length>6?"…":"");
-      html+=`<div class="group-row">
-        <div class="group-name" style="color:${color}">${gname}</div>
-        <div class="group-words">${preview}</div>
-        <input class="rate-input" type="number" min="1" max="10" step="0.5" value="${rate}" onchange="onRateChange('${gname}',this.value)">
-        <span class="rate-label">倍</span>
-      </div>`;
-    });
-    document.getElementById("settingBody").innerHTML=html;
-  }
-  document.getElementById("settingOverlay").classList.add("open");
-}
-function onRateChange(gname,val){
-  const v=parseFloat(val); if(isNaN(v)||v<1) return;
-  groupRates[gname]=v; saveRates();
-  Object.entries(words).forEach(([word,data])=>{ data.weight=data.count*getBoostRate(word); });
-  networkDirty=true;
-}
-function resetRates(){
-  Object.entries(boostGroups).forEach(([gname,gdata])=>{ groupRates[gname]=gdata.rate||1; });
-  saveRates();
-  Object.entries(words).forEach(([word,data])=>{ data.weight=data.count*getBoostRate(word); });
-  networkDirty=true; openSetting();
-}
-</script></body>
-</html>
+function clearAll() { words={}; edges={}; flow=[]; sourceSentences=[]; wordToSentenceMap={}; }
+
+draw();
+</script></body></html>
