@@ -1,73 +1,123 @@
 <!DOCTYPE html><html lang="ja"><head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LIVE WORDS v0.11.000</title><style>
+<title>LIVE WORDS v0.11.100</title><style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
   * { box-sizing: border-box; }
-body { margin: 0; background: #060d1a; font-family: 'Noto Sans JP', sans-serif; overflow: hidden; }
-#ui { position: fixed; top: 16px; left: 16px; z-index: 20; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-#statusBadge { display: flex; align-items: center; gap: 8px; background: rgba(6, 13, 26, 0.75); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; padding: 8px 16px; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500; min-width: 160px; }
-#dot { width: 9px; height: 9px; border-radius: 50%; background: #555; transition: background 0.3s; }
-#dot.active { background: #00e676; box-shadow: 0 0 8px #00e676; animation: pulse 2s infinite; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-#controls { display: flex; gap: 10px; align-items: center; }
-#btnGroup, #btnGroup2, #speedControl { display: flex; gap: 6px; background: rgba(6, 13, 26, 0.75); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 6px; color: #ccc; font-size: 12px; align-items: center; }
-button { border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: white; cursor: pointer; transition: 0.1s; }
-button:active { transform: scale(0.95); }
-.start { background: linear-gradient(135deg,#00c853,#00e676); }
-.stop { background: linear-gradient(135deg,#d50000,#ff1744); }
-.toggle { background: rgba(255,255,255,0.1); }
-.toggle.active { background: linear-gradient(135deg,#1565c0,#2979ff); }
-input[type="range"] { width: 70px; }
-canvas { display: block; }
-canvas.clickable { cursor: pointer; }
-.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; }
-.overlay.open { display: flex; }
-.modal { background: #0a1428; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 24px; width: 90%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; }
-.modal-body { overflow-y: auto; flex: 1; margin: 15px 0; color: #fff; }
-.context-item { padding: 10px; border-bottom: 1px solid #222; font-size: 14px; line-height: 1.6; }
-.highlight { color: #00e5ff; font-weight: bold; background: rgba(0,229,255,0.1); padding: 0 2px; }
-#logo { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.1); font-size: 12px; letter-spacing: 2px; }
+  body { margin: 0; background: #060d1a; font-family: 'Noto Sans JP', sans-serif; overflow: hidden; color: #fff; }
+
+  /* 画面上部の操作エリア */
+  #header {
+    position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+    padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: linear-gradient(to bottom, rgba(6,13,26,0.9) 0%, rgba(6,13,26,0) 100%);
+    pointer-events: none;
+  }
+  #header > * { pointer-events: auto; }
+
+  /* ステータスバッジ */
+  .badge {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(20, 30, 50, 0.8); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 999px;
+    padding: 8px 16px; font-size: 13px; font-weight: 700;
+  }
+  #dot { width: 10px; height: 10px; border-radius: 50%; background: #444; }
+  #dot.active { background: #00e676; box-shadow: 0 0 10px #00e676; animation: blink 1.5s infinite; }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* コントロールグループ */
+  .control-panel {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(20, 30, 50, 0.8); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 4px;
+  }
+
+  button {
+    border: none; border-radius: 8px; padding: 8px 14px;
+    font-size: 12px; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: 0.2s; color: #fff;
+  }
+  button:active { transform: scale(0.92); }
+  
+  .btn-main { background: linear-gradient(135deg, #00c853, #00e676); }
+  .btn-stop { background: #d50000; }
+  .btn-sub  { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); }
+  .btn-sub.active { background: #2979ff; border-color: transparent; }
+  .btn-file { background: #6a1b9a; }
+
+  /* スライダーエリア */
+  .slider-unit { display: flex; align-items: center; gap: 8px; padding: 0 10px; font-size: 11px; color: rgba(255,255,255,0.6); }
+  input[type="range"] { width: 60px; accent-color: #2979ff; cursor: pointer; }
+
+  canvas { display: block; }
+  canvas.clickable { cursor: pointer; }
+
+  /* モーダル */
+  .overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(8px); z-index: 200; align-items: center; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: #0d1b2a; border: 1px solid #2979ff44; border-radius: 20px;
+    padding: 30px; width: 90%; max-width: 650px; max-height: 80vh;
+    display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .modal-body { overflow-y: auto; flex: 1; margin: 20px 0; }
+  .context-item {
+    background: rgba(255,255,255,0.03); margin-bottom: 10px; padding: 15px;
+    border-radius: 10px; font-size: 14px; line-height: 1.6; border-left: 4px solid #2979ff;
+  }
+  .highlight { color: #00e5ff; font-weight: 900; background: rgba(0,229,255,0.1); padding: 0 4px; border-radius: 4px; }
+
+  #logo {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.15); font-size: 11px; font-weight: 700; letter-spacing: 0.3em;
+  }
 </style></head><body>
 
-<div id="ui">
-  <div id="statusBadge"><span id="dot"></span><span id="statusText">停止中</span></div>
-  <div id="controls">
-    <div id="btnGroup">
-      <button class="start" onclick="start()">開始</button>
-      <button class="stop" onclick="stop()">停止</button>
-      <button class="toggle" id="modeBtn" onclick="toggleMode()">共起ON</button>
-      <button class="toggle" id="flowBtn" onclick="toggleFlow()" style="display:none;">文字流れON</button>
-    </div>
-    <div id="btnGroup2">
-      <label style="cursor:pointer;padding:8px 12px;background:#6a1b9a;border-radius:8px;font-size:13px;font-weight:600;color:white;">
-        解析 <input type="file" accept=".txt" onchange="loadFile(event)" style="display:none;">
-      </label>
-      <button style="background:rgba(255,255,255,0.1)" onclick="clearAll()">クリア</button>
-    </div>
-    <div id="speedControl">
-      速度 <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="2">
-      量 <input type="range" id="wordSlider" min="5" max="40" value="15">
-    </div>
+<div id="header">
+  <div class="badge"><span id="dot"></span><span id="statusText">STANDBY</span></div>
+  
+  <div class="control-panel">
+    <button class="btn-main" id="startBtn" onclick="start()">開始</button>
+    <button class="btn-stop" onclick="stop()">停止</button>
+    <button class="btn-sub" id="modeBtn" onclick="toggleMode()">共起図 OFF</button>
+    <button class="btn-sub" id="flowBtn" onclick="toggleFlow()" style="display:none;">文字流れ ON</button>
+  </div>
+
+  <div class="control-panel">
+    <label class="btn-file" style="display:inline-block; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer;">
+      ファイル解析 <input type="file" accept=".txt" onchange="loadFile(event)" style="display:none;">
+    </label>
+    <button class="btn-sub" onclick="clearAll()">クリア</button>
+  </div>
+
+  <div class="control-panel">
+    <div class="slider-unit">速度 <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="2"></div>
+    <div class="slider-unit">単語数 <input type="range" id="wordSlider" min="5" max="40" value="15"></div>
   </div>
 </div>
 
 <div id="contextOverlay" class="overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal">
-    <h2 id="ctxTitle" style="color:#00e5ff;margin:0;font-size:18px;"></h2>
+    <h2 id="ctxTitle" style="margin:0; font-size:20px; color:#00e5ff;"></h2>
     <div class="modal-body" id="ctxBody"></div>
-    <button onclick="document.getElementById('contextOverlay').classList.remove('open')" style="background:#333">閉じる</button>
+    <button class="btn-sub" onclick="document.getElementById('contextOverlay').classList.remove('open')">閉じる</button>
   </div>
 </div>
 
-<div id="logo">LIVE WORDS v0.11.000</div>
+<div id="logo">LIVE WORDS v0.11.001</div>
 <canvas id="canvas"></canvas>
 
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
-const STOP_WORDS = ["です","ます","ので","から","こと","もの","ため","よう","とき","ところ","あと"];
+// 削除対象を厳選し、意味のある語尾（やすい、にくい等）は残す
+const STOP_WORDS = ["です","ます","でした","ました","という","あのー","えーと","そのー"];
 
 let words = {}, edges = {}, flow = [], networkNodes = [];
-let mode = "flow", flowOnNetwork = false, running = false;
+let mode = "flow", flowOnNetwork = true, running = false;
 let sourceSentences = [], wordToSentenceMap = {};
 let recognition;
 
@@ -76,19 +126,19 @@ const ctx = canvas.getContext("2d");
 function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 window.onresize = resize; resize();
 
-// --- 解析ロジック (不具合修正版) ---
+// --- 解析ロジック ---
 function extractWords(text) {
-  // 1. 重複（りんごりんご）の正規化
-  const normalized = text.replace(/([ぁ-んァ-ン一-龥]{2,})\1+/g, "$1");
+  // 重複発話の正規化 (りんごりんご -> りんご)
+  let cleanText = text.replace(/([ぁ-んァ-ン一-龥]{2,})\1+/g, "$1");
   
-  // 2. 簡易分割（句読点と助詞で切るが、語尾を削りすぎない）
-  return normalized.split(/[、。！？\s]+|[はがをにでもと]/)
+  // 助詞や記号で区切る
+  return cleanText.split(/[、。！？!?\s]+|[はがをにでもと]/)
     .map(w => w.trim())
     .filter(w => {
       if (w.length < 2) return false;
       if (STOP_WORDS.includes(w)) return false;
-      // 「〜やすい」「〜こと」などの重要語尾が1文字で残らないようチェック
-      if (/^[ぁ-ん]{1,2}$/.test(w)) return false; 
+      // 1文字のひらがな（意味が消失したもの）を除外
+      if (/^[ぁ-ん]$/.test(w)) return false;
       return true;
     });
 }
@@ -98,13 +148,13 @@ function processText(text) {
   tokens.forEach(w => {
     if(!words[w]) words[w] = {count:0, weight:0, group:Math.floor(Math.random()*5)};
     words[w].count++;
-    words[w].weight = words[w].count; // ここで重みが増える＝サイズが大きくなる
+    words[w].weight = words[w].count; 
     
-    // 流れ文字の追加
+    // 流れ文字の追加（既存になければ追加）
     if (!flow.some(f => f.text === w)) {
       flow.push({
-        text: w, x: canvas.width, y: 100 + Math.random() * (canvas.height - 200),
-        size: 14, group: words[w].group, opacity: 0
+        text: w, x: canvas.width + 50, y: 150 + Math.random() * (canvas.height - 300),
+        size: 16, group: words[w].group, opacity: 0
       });
     }
   });
@@ -121,7 +171,7 @@ function processText(text) {
 // --- 音声認識 ---
 function start() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return alert("非対応ブラウザ");
+  if (!SR) return alert("Speech Recognition not supported.");
   recognition = new SR();
   recognition.lang = "ja-JP"; recognition.continuous = true; recognition.interimResults = true;
   recognition.onresult = (e) => {
@@ -129,37 +179,47 @@ function start() {
       if(e.results[i].isFinal) processText(e.results[i][0].transcript);
     }
   };
+  recognition.onend = () => { if(running) recognition.start(); };
   recognition.start(); running = true; updateUI();
 }
-function stop() { if(recognition) recognition.stop(); running = false; updateUI(); }
+function stop() { running = false; if(recognition) recognition.stop(); updateUI(); }
 
 function updateUI() {
   document.getElementById("dot").className = running ? "active" : "";
-  document.getElementById("statusText").textContent = running ? "Listening..." : "停止中";
-  document.getElementById("modeBtn").className = mode === "network" ? "toggle active" : "toggle";
+  document.getElementById("statusText").textContent = running ? "LISTENING" : "STANDBY";
+  const mBtn = document.getElementById("modeBtn");
+  mBtn.textContent = mode === "network" ? "共起図 ON" : "共起図 OFF";
+  mBtn.className = mode === "network" ? "btn-sub active" : "btn-sub";
   document.getElementById("flowBtn").style.display = mode === "network" ? "block" : "none";
 }
 
 function toggleMode() { mode = mode === "flow" ? "network" : "flow"; updateUI(); }
-function toggleFlow() { flowOnNetwork = !flowOnNetwork; document.getElementById("flowBtn").className = flowOnNetwork ? "toggle active" : "toggle"; }
+function toggleFlow() { 
+  flowOnNetwork = !flowOnNetwork; 
+  document.getElementById("flowBtn").className = flowOnNetwork ? "btn-sub active" : "btn-sub";
+}
 
-// --- 描画ロジック ---
+// --- 描画ループ ---
 function draw() {
   ctx.fillStyle = "#060d1a"; ctx.fillRect(0,0,canvas.width,canvas.height);
-  const speed = parseFloat(document.getElementById("speedSlider").value);
+  const speedSetting = parseFloat(document.getElementById("speedSlider").value);
 
-  // 文字流れの更新・描画
+  // 文字流れ
   flow.forEach((f, i) => {
-    f.x -= speed; f.opacity = Math.min(1, f.opacity + 0.05);
-    // 単語の現在のカウントに合わせてサイズを膨らませる
-    const targetSize = 14 + (words[f.text]?.weight || 0) * 2;
+    f.x -= speedSetting;
+    f.opacity = Math.min(1, f.opacity + 0.04);
+    // スコアに応じてサイズを動的に計算
+    const targetSize = 16 + Math.sqrt(words[f.text]?.weight || 1) * 8;
     f.size += (targetSize - f.size) * 0.1;
 
-    ctx.globalAlpha = f.opacity * (mode === "flow" ? 1 : (flowOnNetwork ? 0.3 : 0));
+    let drawAlpha = f.opacity;
+    if (mode === "network") drawAlpha *= (flowOnNetwork ? 0.25 : 0);
+
+    ctx.globalAlpha = drawAlpha;
     ctx.fillStyle = COLORS[f.group];
-    ctx.font = `bold ${f.size}px 'Noto Sans JP'`;
+    ctx.font = `900 ${Math.round(f.size)}px 'Noto Sans JP'`;
     ctx.fillText(f.text, f.x, f.y);
-    if (f.x < -200) flow.splice(i, 1);
+    if (f.x < -300) flow.splice(i, 1);
   });
   ctx.globalAlpha = 1;
 
@@ -168,49 +228,52 @@ function draw() {
 }
 
 function drawNetwork() {
-  const maxWords = parseInt(document.getElementById("wordSlider").value);
-  const sorted = Object.entries(words).sort((a,b) => b[1].weight - a[1].weight).slice(0, maxWords);
+  const limit = parseInt(document.getElementById("wordSlider").value);
+  const sorted = Object.entries(words).sort((a,b) => b[1].weight - a[1].weight).slice(0, limit);
   
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radius = Math.min(centerX, centerY) * 0.7;
+
   networkNodes = sorted.map(([text, data], i) => {
     const angle = (i / sorted.length) * Math.PI * 2;
-    const r = Math.min(canvas.width, canvas.height) * 0.35;
     return {
-      text, x: canvas.width/2 + Math.cos(angle)*r, y: canvas.height/2 + Math.sin(angle)*r,
-      size: 16 + data.weight * 3, color: COLORS[data.group]
+      text, x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius,
+      size: 18 + Math.sqrt(data.weight) * 10, color: COLORS[data.group]
     };
   });
 
-  // 線
-  ctx.strokeStyle = "rgba(255,255,255,0.1)";
+  // エッジ（線）
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
   networkNodes.forEach((n1, i) => {
     networkNodes.slice(i+1).forEach(n2 => {
       const pair = n1.text < n2.text ? n1.text+"*"+n2.text : n2.text+"*"+n1.text;
       if (edges[pair]) {
-        ctx.lineWidth = Math.min(5, edges[pair]);
+        ctx.lineWidth = Math.min(6, edges[pair]);
         ctx.beginPath(); ctx.moveTo(n1.x, n1.y); ctx.lineTo(n2.x, n2.y); ctx.stroke();
       }
     });
   });
 
-  // 円と文字
+  // ノード（単語）
   networkNodes.forEach(n => {
+    ctx.shadowBlur = 15; ctx.shadowColor = n.color;
     ctx.fillStyle = n.color;
-    ctx.font = `bold ${n.size}px 'Noto Sans JP'`;
+    ctx.font = `900 ${Math.round(n.size)}px 'Noto Sans JP'`;
     ctx.textAlign = "center";
-    ctx.shadowBlur = 10; ctx.shadowColor = n.color;
     ctx.fillText(n.text, n.x, n.y);
     ctx.shadowBlur = 0;
   });
 }
 
-// --- ファイル連携 & クリック ---
+// --- ファイル解析 ---
 function loadFile(e) {
   const file = e.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
     const text = ev.target.result;
-    sourceSentences = text.split(/[。！？\n]+/).filter(s => s.length > 1);
-    wordToSentenceMap = {}; words = {}; edges = {};
+    clearAll();
+    sourceSentences = text.split(/[。！？\n]+/).filter(s => s.trim().length > 1);
     sourceSentences.forEach((s, idx) => {
       const tokens = extractWords(s);
       tokens.forEach(t => {
@@ -219,28 +282,38 @@ function loadFile(e) {
         if(!wordToSentenceMap[t]) wordToSentenceMap[t] = new Set();
         wordToSentenceMap[t].add(idx);
       });
-      processText(s); // 共起計算
+      // ファイル全体の共起も計算
+      for(let i=0; i<tokens.length; i++){
+        for(let j=i+1; j<tokens.length; j++){
+          const k = tokens[i] < tokens[j] ? tokens[i]+"*"+tokens[j] : tokens[j]+"*"+tokens[i];
+          edges[k] = (edges[k]||0) + 1;
+        }
+      }
     });
     mode = "network"; updateUI();
   };
   reader.readAsText(file);
 }
 
+// --- 単語クリック（文脈表示） ---
 canvas.onclick = (e) => {
   if (mode !== "network") return;
-  const hit = networkNodes.find(n => Math.hypot(n.x - e.clientX, n.y - e.clientY) < 30);
+  const hit = networkNodes.find(n => Math.hypot(n.x - e.clientX, n.y - (e.clientY - 10)) < 40);
   if (hit) {
     const idxs = wordToSentenceMap[hit.text];
     if (!idxs) return;
-    document.getElementById("ctxTitle").textContent = `「${hit.text}」を含む文`;
+    document.getElementById("ctxTitle").textContent = `「${hit.text}」の出現コンテキスト`;
     document.getElementById("ctxBody").innerHTML = Array.from(idxs).map(i => 
-      `<div class="context-item">${sourceSentences[i].replace(hit.text, `<span class="highlight">${hit.text}</span>`)}</div>`
+      `<div class="context-item">${sourceSentences[i].replace(new RegExp(hit.text, 'g'), `<span class="highlight">${hit.text}</span>`)}</div>`
     ).join("");
     document.getElementById("contextOverlay").classList.add("open");
   }
 };
 
-function clearAll() { words={}; edges={}; flow=[]; sourceSentences=[]; wordToSentenceMap={}; }
+function clearAll() {
+  words={}; edges={}; flow=[]; sourceSentences=[]; wordToSentenceMap={};
+  if(!running) updateUI();
+}
 
 draw();
 </script></body></html>
