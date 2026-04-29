@@ -3,425 +3,225 @@
 <title>LIVE WORDS</title><style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
   * { box-sizing: border-box; }
-body {
-margin: 0;
-background: #060d1a;
-font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
-overflow: hidden;
-}
-#ui {
-position: fixed;
-top: 16px;
-left: 16px;
-z-index: 20;
-display: flex;
-align-items: center;
-gap: 10px;
-flex-wrap: wrap;
-}
-#statusBadge {
-display: flex;
-align-items: center;
-gap: 8px;
-background: rgba(6, 13, 26, 0.75);
-backdrop-filter: blur(14px);
-border: 1px solid rgba(255,255,255,0.08);
-border-radius: 999px;
-padding: 8px 16px;
-color: rgba(255,255,255,0.85);
-font-size: 13px;
-font-weight: 500;
-letter-spacing: 0.02em;
-min-width: 160px;
-}
-#dot {
-width: 9px;
-height: 9px;
-border-radius: 50%;
-background: #555;
-flex-shrink: 0;
-transition: background 0.3s;
-}
-#dot.active {
-background: #00e676;
-box-shadow: 0 0 8px #00e676, 0 0 20px #00e67688;
-animation: pulse 2s ease-in-out infinite;
-}
-@keyframes pulse {
-0%,100% { box-shadow: 0 0 8px #00e676, 0 0 20px #00e67688; }
-50%      { box-shadow: 0 0 4px #00e676, 0 0 10px #00e67644; }
-}
-#btnGroup {
-display: flex;
-gap: 6px;
-background: rgba(6, 13, 26, 0.75);
-backdrop-filter: blur(14px);
-border: 1px solid rgba(255,255,255,0.08);
-border-radius: 12px;
-padding: 6px;
-}
-button {
-border: none;
-border-radius: 8px;
-padding: 8px 16px;
-font-size: 13px;
-font-weight: 600;
-font-family: inherit;
-color: white;
-cursor: pointer;
-letter-spacing: 0.03em;
-transition: opacity 0.15s, transform 0.1s;
-}
+body { margin: 0; background: #060d1a; font-family: 'Noto Sans JP', sans-serif; overflow: hidden; }
+#ui { position: fixed; top: 16px; left: 16px; z-index: 20; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#statusBadge { display: flex; align-items: center; gap: 8px; background: rgba(6, 13, 26, 0.75); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; padding: 8px 16px; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500; min-width: 160px; }
+#dot { width: 9px; height: 9px; border-radius: 50%; background: #555; transition: background 0.3s; }
+#dot.active { background: #00e676; box-shadow: 0 0 8px #00e676; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+#btnGroup, #btnGroup2 { display: flex; gap: 6px; background: rgba(6, 13, 26, 0.75); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 6px; }
+button { border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: white; cursor: pointer; transition: 0.1s; }
 button:active { transform: scale(0.96); }
-button:hover  { opacity: 0.85; }
-.start  { background: linear-gradient(135deg,#00c853,#00e676); }
-.stop   { background: linear-gradient(135deg,#d50000,#ff1744); }
-.toggle {
-background: rgba(255,255,255,0.1);
-border: 1px solid rgba(255,255,255,0.15);
-}
-.toggle.active {
-background: linear-gradient(135deg,#1565c0,#2979ff);
-border-color: transparent;
-}
-#logo {
-position: fixed;
-bottom: 20px;
-left: 50%;
-transform: translateX(-50%);
-font-size: 13px;
-font-weight: 600;
-letter-spacing: 0.2em;
-color: rgba(255,255,255,0.12);
-text-transform: uppercase;
-pointer-events: none;
-z-index: 19;
-white-space: nowrap;
-}
-#btnGroup2 {
-display: flex;
-gap: 6px;
-background: rgba(6, 13, 26, 0.75);
-backdrop-filter: blur(14px);
-border: 1px solid rgba(255,255,255,0.08);
-border-radius: 12px;
-padding: 6px;
-}
-#fileBtn {
-border: none;
-border-radius: 8px;
-padding: 8px 16px;
-font-size: 13px;
-font-weight: 600;
-font-family: inherit;
-color: white;
-cursor: pointer;
-letter-spacing: 0.03em;
-background: linear-gradient(135deg,#6a1b9a,#ab47bc);
-transition: opacity 0.15s, transform 0.1s;
-}
-#fileBtn:active { transform: scale(0.96); }
-#fileBtn:hover  { opacity: 0.85; }
-.clear {
-background: rgba(255,255,255,0.1);
-border: 1px solid rgba(255,255,255,0.15) !important;
-}
-#speedControl {
-display: flex;
-align-items: center;
-gap: 8px;
-background: rgba(6, 13, 26, 0.75);
-backdrop-filter: blur(14px);
-border: 1px solid rgba(255,255,255,0.08);
-border-radius: 12px;
-padding: 8px 14px;
-color: rgba(255,255,255,0.6);
-font-size: 12px;
-font-weight: 500;
-}
-#speedSlider {
--webkit-appearance: none;
-appearance: none;
-width: 90px;
-height: 4px;
-border-radius: 2px;
-background: rgba(255,255,255,0.2);
-outline: none;
-}
-#speedSlider::-webkit-slider-thumb {
--webkit-appearance: none;
-appearance: none;
-width: 14px;
-height: 14px;
-border-radius: 50%;
-background: #2979ff;
-cursor: pointer;
-box-shadow: 0 0 6px #2979ff88;
-}
+.start { background: linear-gradient(135deg,#00c853,#00e676); }
+.stop { background: linear-gradient(135deg,#d50000,#ff1744); }
+.toggle { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); }
+.toggle.active { background: linear-gradient(135deg,#1565c0,#2979ff); border-color: transparent; }
+#fileBtn { background: linear-gradient(135deg,#6a1b9a,#ab47bc); border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: white; cursor: pointer; }
+#speedControl { display: flex; align-items: center; gap: 8px; background: rgba(6, 13, 26, 0.75); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 8px 14px; color: rgba(255,255,255,0.6); font-size: 12px; }
+input[type="range"] { width: 80px; }
 canvas { display: block; }
-canvas.clickable { cursor: pointer; } /* ファイルモード時のカーソル */
-
-.overlay {
-display: none;
-position: fixed;
-inset: 0;
-background: rgba(0,0,0,0.6);
-backdrop-filter: blur(6px);
-z-index: 100;
-align-items: center;
-justify-content: center;
-}
+canvas.clickable { cursor: pointer; }
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; }
 .overlay.open { display: flex; }
-.modal {
-background: rgba(10,20,40,0.97);
-border: 1px solid rgba(255,255,255,0.12);
-border-radius: 16px;
-padding: 28px;
-width: min(560px, 92vw);
-max-height: 80vh;
-display: flex;
-flex-direction: column;
-gap: 16px;
-}
-.modal h2 {
-margin: 0;
-font-size: 16px;
-font-weight: 700;
-color: rgba(255,255,255,0.9);
-letter-spacing: 0.05em;
-}
-.modal-body {
-overflow-y: auto;
-flex: 1;
-}
-.modal-footer {
-display: flex;
-gap: 8px;
-justify-content: flex-end;
-}
-.modal-footer button { padding: 8px 18px; font-size: 13px; }
-.btn-csv  { background: linear-gradient(135deg,#00838f,#00e5ff); }
-.btn-close { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2) !important; }
-.btn-setting { background: linear-gradient(135deg,#e65100,#ff9800); }
-.btn-reset { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2) !important; font-size:12px; }
-#summaryTable table { width:100%; border-collapse:collapse; font-size:13px; }
-#summaryTable th {
-position: sticky; top: 0;
-background: rgba(10,20,40,0.99);
-color: rgba(255,255,255,0.5);
-font-weight: 600; padding: 8px 10px;
-text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-#summaryTable td { padding:7px 10px; color:rgba(255,255,255,0.85); border-bottom:1px solid rgba(255,255,255,0.05); }
-#summaryTable tr:hover td { background:rgba(255,255,255,0.04); }
-.boost-badge {
-display: inline-block;
-font-size: 10px; font-weight: 700;
-padding: 2px 7px; border-radius: 999px;
-letter-spacing: 0.03em; color: #000;
-}
-.group-row {
-display: flex; align-items: center;
-gap: 12px; padding: 10px 4px;
-border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.group-name { flex: 1; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; }
-.group-words { flex: 2; color: rgba(255,255,255,0.35); font-size: 11px; line-height: 1.6; }
-.rate-input {
-width: 52px; padding: 5px 8px;
-background: rgba(255,255,255,0.08);
-border: 1px solid rgba(255,255,255,0.15);
-border-radius: 6px; color: white;
-font-size: 13px; font-weight: 600; font-family: inherit;
-text-align: center;
-}
-.rate-input:focus { outline: none; border-color: #2979ff; }
-.rate-label { color: rgba(255,255,255,0.4); font-size: 12px; }
-
-/* ★★ 新機能：文章表示モーダル用スタイル (既存のモーダルに準拠) ★★ */
-.context-item {
-margin-bottom: 14px; padding: 14px;
-background: rgba(255,255,255,0.03);
-border-radius: 8px; font-size: 14px;
-line-height: 1.6; color: rgba(255,255,255,0.85);
-border-left: 3px solid transparent;
-transition: border-color 0.2s;
-}
-.context-item:hover {
-border-color: #2979ff;
-background: rgba(255,255,255,0.05);
-}
-.highlight {
-color: #ff5252; /* 強調色 */
-font-weight: 700;
-background: rgba(255,82,82,0.1);
-padding: 0 2px;
-border-radius: 2px;
-}
+.modal { background: rgba(10,20,40,0.97); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 28px; width: min(560px, 92vw); max-height: 80vh; display: flex; flex-direction: column; gap: 16px; color: white; }
+.modal-body { overflow-y: auto; flex: 1; }
+.context-item { margin-bottom: 14px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 14px; line-height: 1.6; border-left: 3px solid #2979ff; }
+.highlight { color: #ff5252; font-weight: 700; background: rgba(255,82,82,0.1); padding: 0 2px; }
+#logo { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); font-size: 13px; font-weight: 600; letter-spacing: 0.2em; color: rgba(255,255,255,0.12); pointer-events: none; }
 </style></head><body>
+
 <div id="ui">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <div id="statusBadge">
-      <span id="dot"></span>
-      <span id="statusText">停止中</span>
-    </div>
-    <button id="toggleControls" onclick="toggleControls()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 12px;font-size:13px;"> 表示 </button>
+  <div id="statusBadge"><span id="dot"></span><span id="statusText">停止中</span></div>
+  <div id="btnGroup">
+    <button class="start" id="startBtn" onclick="start()">開始</button>
+    <button class="stop" onclick="stop()">停止</button>
+    <button class="toggle" id="toggleBtn" onclick="toggleMode()">共起ON</button>
   </div>
-  <div id="controls">
-    <div id="btnGroup">
-      <button class="start" id="startBtn" onclick="start()" disabled>読込中...</button>
-      <button class="stop" onclick="stop()">停止</button>
-      <button class="toggle" id="toggleBtn" onclick="toggleMode()">共起ON</button>
-      <button class="toggle" id="flowToggleBtn" onclick="toggleFlowOnNetwork()" style="display:none;">文字流れON</button>
-    </div>
-    <div id="btnGroup2">
-      <label id="fileBtn">
-        ファイル解析
-        <input type="file" id="fileInput" accept=".txt" onchange="loadFile(event)" style="display:none;">
-      </label>
-      <button class="clear" onclick="clearAll()">クリア</button>
-      <button style="background:linear-gradient(135deg,#00838f,#00e5ff);" onclick="openSummary()">集計</button>
-      <button class="btn-setting" onclick="openSetting()">設定</button>
-    </div>
-    <div id="speedControl">
-      速度
-      <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="2">
-      &nbsp;ワード数
-      <input type="range" id="wordSlider" min="5" max="30" step="1" value="15" oninput="onWordSliderChange()">
-      <span id="wordCount">15</span>
-    </div>
+  <div id="btnGroup2">
+    <label id="fileBtn">ファイル解析<input type="file" onchange="loadFile(event)" style="display:none;"></label>
+    <button class="toggle" style="background:rgba(255,255,255,0.1)" onclick="clearAll()">クリア</button>
+  </div>
+  <div id="speedControl">
+    速度 <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="2">
+    ワード数 <input type="range" id="wordSlider" min="5" max="40" value="15">
   </div>
 </div>
 
-<div id="summaryOverlay" class="overlay" onclick="onOverlayClick(event,'summaryOverlay')">
+<div id="contextOverlay" class="overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal">
-    <h2>ワード集計</h2>
-    <div class="modal-body" id="summaryTable"></div>
-    <div class="modal-footer">
-      <button class="btn-csv" onclick="downloadCSV()">CSVダウンロード</button>
-      <button class="btn-close" onclick="closeOverlay('summaryOverlay')">閉じる</button>
-    </div>
-  </div>
-</div>
-
-<div id="settingOverlay" class="overlay" onclick="onOverlayClick(event,'settingOverlay')">
-  <div class="modal">
-    <h2>グループ倍率設定</h2>
-    <div class="modal-body" id="settingBody"></div>
-    <div class="modal-footer">
-      <button class="btn-reset" onclick="resetRates()">初期値に戻す</button>
-      <button class="btn-close" onclick="closeOverlay('settingOverlay')">閉じる</button>
-    </div>
-  </div>
-</div>
-
-<div id="contextOverlay" class="overlay" onclick="onOverlayClick(event,'contextOverlay')">
-  <div class="modal">
-    <h2 id="contextTitle">出現箇所</h2>
+    <h2 id="contextTitle" style="margin:0;font-size:18px;">出現箇所</h2>
     <div class="modal-body" id="contextBody"></div>
-    <div class="modal-footer">
-      <button class="btn-close" onclick="closeOverlay('contextOverlay')">閉じる</button>
-    </div>
+    <button onclick="document.getElementById('contextOverlay').classList.remove('open')" style="background:#333;border:none;color:white;padding:10px;border-radius:8px;cursor:pointer;">閉じる</button>
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.12.000</div>
+<div id="logo">LIVE WORDS v0.12.100</div>
 <canvas id="canvas"></canvas>
+
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
-const STOP_WORDS = [
-  "えー","あの","まあ","ちょっと","えっと","なるほど",
-  "は","が","を","に","で","と","も","の","へ","や","ね","よ","か","な","けど","から","ので","より","まで","だけ","しか","など","って","たり","ながら",
-  "ている","てい","てる","くい","くて","くな","くし","して","した","する","され","なっ","なり","あり","おり","いく","くる","いる","いた","ある","あっ",
-  "これ","それ","あれ","この","その","あの","ここ","そこ","あそこ","こと","もの","とき","ところ",
-  "そして","また","および","さらに","ただし","なお","つまり","すなわち","したがって","しかし","でも","けれど","ところが","一方","なぜなら",
-  "思う","思った","見る","見た","いう","いった","できる","できた","なる","なった",
-  "です","ます","でした","ました","ません","ない","ため","よう","場合","以上","以下","以外","について","による","において","に関して","に対して",
-  "はい","そう","もう","まず","次に","最後","一つ","二つ","三つ"
-];
-const MIN_WORD_LEN = 2;
-const NORMALIZE = {
-  "参政":"参政党","参政党":"参政党",
-  "立憲":"立憲民主党","立憲民主党":"立憲民主党",
-  "中道":"中道改革連合","中道改革":"中道改革連合",
-  "自民":"自由民主党","自民党":"自由民主党",
-  "維新":"日本維新の会",
-  "子ど":"子ども","子供":"子ども"
-};
+const STOP_WORDS = ["です","ます","でした","ました","という","あのー","えーと"];
 
-let boostGroups  = {};
-let groupRates   = {};
-let wordGroupMap = {};
-const LS_KEY      = "livewords_groupRates";
-const LS_FLOW_KEY = "livewords_flowOnNetwork";
-
-// ★★ 新機能：ファイル解析用データ保持 ★★
-let sourceSentences = [];   // ファイルの全文章を配列で保持
-let wordToSentenceMap = {}; // ワード -> 出現した文番号(index)のSet
-
-let flowOnNetwork = (()=>{
-  const s = localStorage.getItem(LS_FLOW_KEY);
-  return s === null ? false : s === "true";
-})();
-function saveFlowOnNetwork(){ localStorage.setItem(LS_FLOW_KEY, String(flowOnNetwork)); }
-function updateFlowToggleBtn(){
-  const btn = document.getElementById("flowToggleBtn");
-  if(flowOnNetwork){ btn.textContent="文字流れOFF"; btn.classList.add("active"); }
-  else             { btn.textContent="文字流れON";  btn.classList.remove("active"); }
-}
-function toggleFlowOnNetwork(){ flowOnNetwork=!flowOnNetwork; saveFlowOnNetwork(); updateFlowToggleBtn(); }
-
-function buildWordGroupMap(){
-  wordGroupMap={};
-  Object.entries(boostGroups).forEach(([gname,gdata])=>{
-    (gdata.words||[]).forEach(w=>{ wordGroupMap[w]=gname; });
-  });
-}
-function getBoostRate(word){ const g=wordGroupMap[word]; if(!g) return 1; return groupRates[g]||1; }
-function saveRates(){ localStorage.setItem(LS_KEY, JSON.stringify(groupRates)); }
-function loadSavedRates(){ try{ const s=localStorage.getItem(LS_KEY); if(s) return JSON.parse(s); }catch(e){} return null; }
-
-const BASE_FONT_SIZE = 14;
-const MAX_FONT_SIZE  = 42;
-function calcFlowFontSize(weight){ return Math.min(BASE_FONT_SIZE+Math.log1p(weight)*6.5, MAX_FONT_SIZE); }
-
-const FLOW_COOLDOWN_MS = 1000;
-const flowLastAdded    = {};
-
-function getMaxWords(){ const s=document.getElementById("wordSlider"); return s?parseInt(s.value):15; }
-function onWordSliderChange(){
-  document.getElementById("wordCount").textContent=document.getElementById("wordSlider").value;
-  networkDirty=true;
-}
-
-let words        = {};
-let edges        = {};
-let flow         = [];
-let mode         = "flow";
+let words = {}, edges = {}, flow = [], networkNodes = [];
+let mode = "flow", running = false, isFileMode = false;
+let sourceSentences = [], wordToSentenceMap = {};
 let recognition;
-let running      = false;
-let lastWord     = "";
-let emittedWords = new Set();
-let networkNodes = [];
-let networkDirty = true;
-let isFileMode   = false;
-
-let lastInterimTranscript = "";
-let interimSegments       = [];
-let interimFlushTimer     = null;
 
 const canvas = document.getElementById("canvas");
-const ctx    = canvas.getContext("2d");
-function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; networkDirty=true; }
-resize();
-window.onresize=resize;
+const ctx = canvas.getContext("2d");
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.onresize = resize; resize();
 
-function updateStatus(){
-  const dot=document.getElementById("dot"),text=document.getElementById("statusText");
-  if(running){ dot.className="active"; text.textContent="Listening..."; }
-  else        { dot.className="";      text.textContent="停止中"; }
+// --- 解析ロジック (「すい環境」などのバグを修正) ---
+function extractWords(text) {
+  // 重複(りんごりんご)の正規化
+  const normalized = text.replace(/([ぁ-んァ-ン一-龥]{2,})\1+/g, "$1");
+  return normalized.split(/[、。！？\s]+|[はがをにでもと]/)
+    .map(w => w.trim())
+    .filter(w => {
+      if (w.length < 2) return false;
+      if (STOP_WORDS.includes(w)) return false;
+      // 以前の不具合原因：過剰な cleanWord 処理を廃止
+      return true;
+    });
 }
-function updateMode(){
-  const btn=document.getElementById("toggleBtn"),flowBtn=document.getElementById("flowToggleBtn");
-  if(mode==="flow"){
-    btn.textContent="共起ON"; btn.classList.remove("
+
+function processText(text) {
+  const tokens = extractWords(text);
+  tokens.forEach(w => {
+    if(!words[w]) words[w] = {count:0, weight:0, group:Math.floor(Math.random()*5)};
+    words[w].count++;
+    words[w].weight = words[w].count; 
+    
+    if (!flow.some(f => f.text === w)) {
+      flow.push({
+        text: w, x: canvas.width, y: 100 + Math.random() * (canvas.height - 200),
+        size: 16, group: words[w].group, opacity: 0
+      });
+    }
+  });
+  
+  for(let i=0; i<tokens.length; i++){
+    for(let j=i+1; j<tokens.length; j++){
+      const k = tokens[i] < tokens[j] ? tokens[i]+"*"+tokens[j] : tokens[j]+"*"+tokens[i];
+      edges[k] = (edges[k]||0) + 1;
+    }
+  }
+}
+
+// --- 音声認識 ---
+function start() {
+  if(running) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return alert("非対応ブラウザ");
+  recognition = new SR();
+  recognition.lang = "ja-JP"; recognition.continuous = true; recognition.interimResults = true;
+  recognition.onresult = (e) => {
+    for(let i=e.resultIndex; i<e.results.length; i++) {
+      if(e.results[i].isFinal) processText(e.results[i][0].transcript);
+    }
+  };
+  recognition.onend = () => { if(running) recognition.start(); };
+  recognition.start(); running = true; updateUI();
+}
+function stop() { running = false; if(recognition) recognition.stop(); updateUI(); }
+
+function updateUI() {
+  document.getElementById("dot").className = running ? "active" : "";
+  document.getElementById("statusText").textContent = running ? "Listening..." : "停止中";
+  document.getElementById("toggleBtn").className = mode === "network" ? "toggle active" : "toggle";
+}
+
+function toggleMode() { mode = mode === "flow" ? "network" : "flow"; updateUI(); }
+
+// --- 描画 ---
+function draw() {
+  ctx.fillStyle = "#060d1a"; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const speed = parseFloat(document.getElementById("speedSlider").value);
+
+  flow.forEach((f, i) => {
+    f.x -= speed; f.opacity = Math.min(1, f.opacity + 0.05);
+    const targetSize = 16 + (words[f.text]?.weight || 0) * 3;
+    f.size += (targetSize - f.size) * 0.1;
+
+    ctx.globalAlpha = f.opacity * (mode === "flow" ? 1 : 0.2);
+    ctx.fillStyle = COLORS[f.group];
+    ctx.font = `bold ${f.size}px 'Noto Sans JP'`;
+    ctx.fillText(f.text, f.x, f.y);
+    if (f.x < -200) flow.splice(i, 1);
+  });
+  ctx.globalAlpha = 1;
+
+  if (mode === "network") drawNetwork();
+  requestAnimationFrame(draw);
+}
+
+function drawNetwork() {
+  const maxW = parseInt(document.getElementById("wordSlider").value);
+  const sorted = Object.entries(words).sort((a,b) => b[1].weight - a[1].weight).slice(0, maxW);
+  const cx = canvas.width/2, cy = canvas.height/2, r = Math.min(cx, cy) * 0.7;
+
+  networkNodes = sorted.map(([text, data], i) => {
+    const angle = (i / sorted.length) * Math.PI * 2;
+    return { text, x: cx + Math.cos(angle)*r, y: cy + Math.sin(angle)*r, size: 20 + data.weight*4, color: COLORS[data.group] };
+  });
+
+  ctx.strokeStyle = "rgba(255,255,255,0.1)";
+  networkNodes.forEach((n1, i) => {
+    networkNodes.slice(i+1).forEach(n2 => {
+      const k = n1.text < n2.text ? n1.text+"*"+n2.text : n2.text+"*"+n1.text;
+      if (edges[k]) { ctx.lineWidth = Math.min(5, edges[k]); ctx.beginPath(); ctx.moveTo(n1.x, n1.y); ctx.lineTo(n2.x, n2.y); ctx.stroke(); }
+    });
+  });
+
+  networkNodes.forEach(n => {
+    ctx.fillStyle = n.color; ctx.font = `bold ${n.size}px 'Noto Sans JP'`; ctx.textAlign = "center";
+    ctx.shadowBlur = 10; ctx.shadowColor = n.color; ctx.fillText(n.text, n.x, n.y); ctx.shadowBlur = 0;
+  });
+}
+
+// --- ファイル解析 & 文脈表示 ---
+function loadFile(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const text = ev.target.result; isFileMode = true;
+    sourceSentences = text.split(/[。！？\n]+/).filter(s => s.length > 1);
+    words = {}; edges = {}; wordToSentenceMap = {};
+    sourceSentences.forEach((s, idx) => {
+      const tokens = extractWords(s);
+      tokens.forEach(t => {
+        if(!words[t]) words[t] = {count:0, weight:0, group:Math.floor(Math.random()*5)};
+        words[t].count++; words[t].weight = words[t].count;
+        if(!wordToSentenceMap[t]) wordToSentenceMap[t] = new Set();
+        wordToSentenceMap[t].add(idx);
+      });
+      for(let i=0; i<tokens.length; i++) {
+        for(let j=i+1; j<tokens.length; j++) {
+          const k = tokens[i] < tokens[j] ? tokens[i]+"*"+tokens[j] : tokens[j]+"*"+tokens[i];
+          edges[k] = (edges[k]||0)+1;
+        }
+      }
+    });
+    mode = "network"; updateUI();
+  };
+  reader.readAsText(file);
+}
+
+canvas.onclick = (e) => {
+  if (!isFileMode || mode !== "network") return;
+  const hit = networkNodes.find(n => Math.hypot(n.x - e.clientX, n.y - (e.clientY - 10)) < 40);
+  if (hit) {
+    const idxs = wordToSentenceMap[hit.text];
+    document.getElementById("contextTitle").textContent = `「${hit.text}」の出現箇所`;
+    document.getElementById("contextBody").innerHTML = Array.from(idxs).map(i => 
+      `<div class="context-item">${sourceSentences[i].replace(hit.text, `<span class="highlight">${hit.text}</span>`)}</div>`
+    ).join("");
+    document.getElementById("contextOverlay").classList.add("open");
+  }
+};
+
+function clearAll() { words={}; edges={}; flow=[]; isFileMode=false; sourceSentences=[]; wordToSentenceMap={}; }
+
+draw();
+</script></body></html>
