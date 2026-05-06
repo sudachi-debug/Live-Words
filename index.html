@@ -158,7 +158,8 @@ background: #2979ff;
 cursor: pointer;
 box-shadow: 0 0 6px #2979ff88;
 }
-canvas { display: block; }
+canvas { display: block; cursor: default; }
+canvas.clickable { cursor: pointer; }
 .overlay {
 display: none;
 position: fixed;
@@ -175,7 +176,7 @@ background: rgba(10,20,40,0.97);
 border: 1px solid rgba(255,255,255,0.12);
 border-radius: 16px;
 padding: 28px;
-width: min(560px, 92vw);
+width: min(680px, 92vw);
 max-height: 80vh;
 display: flex;
 flex-direction: column;
@@ -235,6 +236,20 @@ text-align: center;
 }
 .rate-input:focus { outline: none; border-color: #2979ff; }
 .rate-label { color: rgba(255,255,255,0.4); font-size: 12px; }
+
+/* 文脈表示用スタイル */
+.context-item {
+  margin-bottom: 12px; padding: 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px; font-size: 14px;
+  line-height: 1.6; color: rgba(255,255,255,0.85);
+  border-left: 3px solid #2979ff;
+}
+.highlight {
+  background: rgba(41, 121, 255, 0.2);
+  color: #2979ff; font-weight: 700;
+  padding: 0 4px; border-radius: 4px;
+}
 </style></head><body>
 <div id="ui">
   <div style="display:flex;align-items:center;gap:10px;">
@@ -270,6 +285,16 @@ text-align: center;
   </div>
 </div>
 
+<div id="contextOverlay" class="overlay" onclick="onOverlayClick(event,'contextOverlay')">
+  <div class="modal">
+    <h2 id="contextTitle">出現箇所</h2>
+    <div class="modal-body" id="contextBody"></div>
+    <div class="modal-footer">
+      <button class="btn-close" onclick="closeOverlay('contextOverlay')">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <div id="summaryOverlay" class="overlay" onclick="onOverlayClick(event,'summaryOverlay')">
   <div class="modal">
     <h2>ワード集計</h2>
@@ -292,7 +317,7 @@ text-align: center;
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.09.003</div>
+<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.10.000</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -321,6 +346,10 @@ let groupRates   = {};
 let wordGroupMap = {};
 const LS_KEY      = "livewords_groupRates";
 const LS_FLOW_KEY = "livewords_flowOnNetwork";
+
+// --- 追加: ファイル解析用データ ---
+let sourceSentences = [];   // ファイルの全文章
+let wordToSentenceMap = {}; // ワード(key) -> 文番号Set
 
 let flowOnNetwork = (()=>{
   const s = localStorage.getItem(LS_FLOW_KEY);
@@ -452,10 +481,7 @@ function splitJapanese(text){
     .split(/\s+/);
 }
 
-// ★★ cleanWord 強化版 ★★
-// 「行きます→行く」「住んでいました→住む」など動詞活用の末尾を確実に除去
 function cleanWord(word){
-  // 長い複合パターンから先に除去（順序重要）
   word=word.replace(/(いらっしゃいます|いらっしゃいました)$/,"");
   word=word.replace(/(させていただきます|させていただきました)$/,"");
   word=word.replace(/(していただきます|していただきました)$/,"");
@@ -475,12 +501,10 @@ function cleanWord(word){
   word=word.replace(/(されている|されていた|してしまう|してしまった)$/,"");
   word=word.replace(/(している|していた|されている|してきた|していく)$/,"");
   word=word.replace(/(できない|できなく|できなくて)$/,"できない");
-  // ★ 「〜ました」「〜ます」「〜まし」を語幹に戻す
   word=word.replace(/(いきました|いきます)$/,"いく");
   word=word.replace(/(きました|きます|きまし)$/,"くる");
   word=word.replace(/(ました|まして|ます|ませ|まし)$/,"");
   word=word.replace(/(でした|です)$/,"");
-  // ★ 「〜んで」「〜んだ」（撥音便）を処理
   word=word.replace(/(んでいた|んでいる|んでいます|んでいました)$/,"む");
   word=word.replace(/(んでい|んで)$/,"む");
   word=word.replace(/(った|って|ってい)$/,"");
@@ -494,22 +518,16 @@ function cleanWord(word){
   for(let i=0;i<3;i++) word=word.replace(/(が|を|は|に|で|と|も|の|へ|や|か|な|し|く|て|で)$/,"");
   word=word.replace(/(さん|さ|あさ|んさ|んさん)+$/,"");
   if(!word) return null;
-  // 平仮名のみ3文字以下はnull
   if(/^[ぁ-ん]+$/.test(word) && word.length<=3) return null;
   return word;
 }
 
-// ★★ isJunkToken 強化版 ★★
 function isJunkToken(word){
   if(!word) return true;
-  // 1〜2文字の平仮名は除去
   if(/^[ぁ-ん]{1,2}$/.test(word)) return true;
-  // 動詞・形容詞の途中形（語幹なし）を除去
-  // 「行きま」「流れてきま」「住ん」のような中途形
-  if(/[きぎしじちに][まみ]$/.test(word)) return true;   // 〜きま、〜しま など
-  if(/[んン]$/.test(word) && /^[ぁ-ん]+$/.test(word)) return true; // 平仮名のみで「ん」終わり
-  if(/[てで][いき]$/.test(word)) return true;            // 〜てい、〜でき の途中
-  // 「らドンブラコどん」のような混在ノイズ（平仮名＋カタカナ混在で意味不明）
+  if(/[きぎしじちに][まみ]$/.test(word)) return true;
+  if(/[んン]$/.test(word) && /^[ぁ-ん]+$/.test(word)) return true;
+  if(/[てで][いき]$/.test(word)) return true;
   if(/^[ぁ-ん].*[ァ-ン]/.test(word) && word.length<=5) return true;
   if(/^[ァ-ン].*[ぁ-ん]/.test(word) && word.length<=5) return true;
   return false;
@@ -552,41 +570,28 @@ function extractWords(text){
   return result;
 }
 
-// ★★ splitIntoSegments Safari互換版 ★★
-// 後読みを使わず、文字を走査して助詞・句読点の直後で分割する
 function splitIntoSegments(text){
   const PARTICLES = "はがをにでともへやからまでよりってけどのでながら";
   const PUNCTS    = "、。！？!? \t";
   const segments  = [];
   let buf         = "";
-
   for(let i=0; i<text.length; i++){
     const ch   = text[i];
     const next = text[i+1] || "";
     buf += ch;
-
-    // 句読点・スペースは区切りとして捨てる
     if(PUNCTS.includes(ch)){
       const seg = buf.replace(/[、。！？!?\s]+$/,"").trim();
       if(seg.length>=2) segments.push(seg);
       buf="";
       continue;
     }
-
-    // 助詞の直後で区切る（次の文字が助詞でなければ）
     const isParticle = PARTICLES.includes(ch);
     const nextIsParticle = PARTICLES.includes(next);
     if(isParticle && !nextIsParticle && next && !PUNCTS.includes(next)){
-      // ただし buf全体が短すぎる（2文字以下）なら区切らずに続ける
-      if(buf.trim().length >= 3){
-        segments.push(buf.trim());
-        buf="";
-      }
+      if(buf.trim().length >= 3){ segments.push(buf.trim()); buf=""; }
     }
   }
-  // 残りをpendingとして追加
   if(buf.trim().length>=2) segments.push(buf.trim());
-
   return segments.length>0 ? segments : [text];
 }
 
@@ -616,17 +621,14 @@ function processInterim(transcript){
   lastInterimTranscript=transcript;
   if(!newSuffix.trim()) return;
   if(interimFlushTimer){ clearTimeout(interimFlushTimer); interimFlushTimer=null; }
-
   const allSegments=splitIntoSegments(transcript);
   const confirmedSegments=allSegments.slice(0,-1);
   const pendingSegment=allSegments[allSegments.length-1];
-
   confirmedSegments.forEach(seg=>{
     if(interimSegments.includes(seg)) return;
     interimSegments.push(seg);
     extractWords(seg).forEach(word=>emitWordToFlow(word));
   });
-
   interimFlushTimer=setTimeout(()=>{
     interimFlushTimer=null;
     if(!pendingSegment) return;
@@ -666,7 +668,7 @@ function processText(text){
     if(flow.length>40) flow.shift();
     networkDirty=true;
   });
-  current.forEach(a=>{ current.forEach(b=>{ if(a!==b){ let k=a+"_"+b; edges[k]=(edges[k]||0)+1; } }); });
+  current.forEach(a=>{ current.forEach(b=>{ if(a!==b){ let k=a+"*"+b; edges[k]=(edges[k]||0)+1; } }); });
   if(Object.keys(words).length>getMaxWords()){
     let sorted=Object.entries(words).sort((a,b)=>a[1].weight-b[1].weight);
     delete words[sorted[0][0]]; networkDirty=true;
@@ -698,7 +700,11 @@ function buildNetworkLayout(){
 function draw(){
   drawBackground();
   if(mode==="flow"){ drawFlow(); }
-  else { if(networkDirty) buildNetworkLayout(); if(flowOnNetwork) drawFlow(0.002); drawNetwork(); }
+  else { 
+    if(networkDirty) buildNetworkLayout(); 
+    if(flowOnNetwork) drawFlow(0.002); 
+    drawNetwork(); 
+  }
   requestAnimationFrame(draw);
 }
 draw();
@@ -778,15 +784,94 @@ function loadFile(event){
   const reader=new FileReader();
   reader.onload=(e)=>{
     const text=e.target.result; isFileMode=true; clearAll();
-    const chunkSize=500;
-    for(let i=0;i<text.length;i+=chunkSize){ lastWord=""; processText(text.slice(i,i+chunkSize)); }
-    fileFlowPool=flow.map(f=>({...f})); mode="network"; networkDirty=true; updateMode();
+    
+    // 文章単位で分割して保存
+    sourceSentences = text.split(/[。！？\n]+/).filter(s => s.trim().length > 1);
+    wordToSentenceMap = {};
+
+    sourceSentences.forEach((sentence, sIdx) => {
+      const tokens = extractWords(sentence);
+      tokens.forEach(w => {
+        // 出現頻度集計
+        if(!words[w]) words[w] = {count:0, weight:0, group:Math.floor(Math.random()*COLORS.length)};
+        words[w].count += 1;
+        // 文へのインデックス作成
+        if(!wordToSentenceMap[w]) wordToSentenceMap[w] = new Set();
+        wordToSentenceMap[w].add(sIdx);
+      });
+      // 文内での共起関係
+      for(let i=0; i<tokens.length; i++){
+        for(let j=i+1; j<tokens.length; j++){
+          const k = tokens[i] < tokens[j] ? tokens[i]+"*"+tokens[j] : tokens[j]+"*"+tokens[i];
+          edges[k] = (edges[k]||0) + 1;
+        }
+      }
+    });
+
+    // 重み更新
+    Object.keys(words).forEach(w => { words[w].weight = words[w].count * getBoostRate(w); });
+
+    // フィルタリング（上位のみ表示）
+    const sortedKeys = Object.entries(words).sort((a,b)=>b[1].weight - a[1].weight).slice(0, getMaxWords());
+    const newWords = {};
+    sortedKeys.forEach(([k,v]) => newWords[k] = v);
+    words = newWords;
+
+    fileFlowPool=flow.map(f=>({...f})); 
+    mode="network"; networkDirty=true; updateMode();
   };
   reader.readAsText(file,"UTF-8"); event.target.value="";
 }
 
+// --- 追加: クリックイベント ---
+canvas.addEventListener('click', (e) => {
+  if (mode !== "network" || networkNodes.length === 0) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  // 近いノードを検索
+  const hit = networkNodes.find(n => {
+    const dx = mx - n.x;
+    const dy = my - (n.y - n.size/2);
+    return Math.sqrt(dx*dx + dy*dy) < n.size * 1.2;
+  });
+
+  if (hit) showContext(hit.key);
+});
+
+// マウス移動でカーソル変更
+canvas.addEventListener('mousemove', (e) => {
+  if (mode !== "network") return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const isOver = networkNodes.some(n => {
+    const dx = mx - n.x;
+    const dy = my - (n.y - n.size/2);
+    return Math.sqrt(dx*dx + dy*dy) < n.size * 1.2;
+  });
+  canvas.className = isOver ? "clickable" : "";
+});
+
+function showContext(word) {
+  const indices = wordToSentenceMap[word];
+  if (!indices || indices.size === 0) return;
+  
+  document.getElementById("contextTitle").textContent = `「${word}」の出現箇所 (${indices.size}件)`;
+  let html = "";
+  Array.from(indices).forEach(idx => {
+    const sentence = sourceSentences[idx];
+    const highlighted = sentence.replace(new RegExp(`(${word})`, 'g'), '<span class="highlight">$1</span>');
+    html += `<div class="context-item">${highlighted}</div>`;
+  });
+  document.getElementById("contextBody").innerHTML = html;
+  document.getElementById("contextOverlay").classList.add("open");
+}
+
 function clearAll(){
-  words={}; edges={}; flow={}; flow=[]; fileFlowPool=[];
+  words={}; edges={}; flow=[]; fileFlowPool=[];
+  sourceSentences=[]; wordToSentenceMap={}; // 追加
   networkNodes=[]; networkDirty=true; lastWord="";
   resetInterimState(); isFileMode=false;
   for(const k in flowLastAdded) delete flowLastAdded[k];
