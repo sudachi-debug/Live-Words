@@ -370,7 +370,7 @@ transition: color 0.15s;
   </div>
 </div>
 
-<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.11.000</div>
+<div id="logo">LIVE WORDS&nbsp;&nbsp;v0.11.003</div>
 <canvas id="canvas"></canvas>
 <script>
 const COLORS = ["#00e5ff","#69f0ae","#ffd740","#ff5252","#b388ff"];
@@ -836,7 +836,7 @@ function loadFile(event){
 const file=event.target.files[0]; if(!file) return;
 const reader=new FileReader();
 reader.onload=(e)=>{
-const text=e.target.result; isFileMode=true; clearAll();
+const text=e.target.result; clearAll(); isFileMode=true;
 
 ```
 // 文章単位で分割して保存
@@ -983,22 +983,20 @@ let html=””;
 groups.forEach(([gname,gdata],idx)=>{
 const rate=groupRates[gname]||1,color=GROUP_COLORS[idx%GROUP_COLORS.length];
 const preview=(gdata.words||[]).slice(0,6).join(”・”)+((gdata.words||[]).length>6?”…”:””);
-const escapedGname=gname.replace(/’/g,”\’”);
-html+=`<div class="group-row"> <div class="group-name group-name-btn" style="color:${color}" onclick="toggleWordList('wl_${idx}','${escapedGname}',${idx})">${gname} ▾</div> <div class="group-words">${preview}</div> <input class="rate-input" type="number" min="1" max="10" step="0.5" value="${rate}" onchange="onRateChange('${escapedGname}',this.value)"> <span class="rate-label">倍</span> </div> <div class="word-list-panel" id="wl_${idx}"></div>`;
+html+=`<div class="group-row"> <div class="group-name group-name-btn" style="color:${color}" data-gname="${gname}" data-idx="${idx}" data-panel="wl_${idx}" onclick="toggleWordList(this)">${gname} ▾</div> <div class="group-words">${preview}</div> <input class="rate-input" type="number" min="1" max="10" step="0.5" value="${rate}" data-gname="${gname}" onchange="onRateChange(this)"> <span class="rate-label">倍</span> </div> <div class="word-list-panel" id="wl_${idx}"></div>`;
 });
 document.getElementById(“settingBody”).innerHTML=html;
 }
 document.getElementById(“settingOverlay”).classList.add(“open”);
 }
 
-// ★ 追加: グループ名クリックで単語一覧を展開/折りたたむ
-function toggleWordList(panelId, gname, idx){
+function toggleWordList(el){
+const panelId=el.dataset.panel, gname=el.dataset.gname, idx=parseInt(el.dataset.idx);
 const panel=document.getElementById(panelId);
 if(panel.classList.contains(“open”)){
 panel.classList.remove(“open”);
 return;
 }
-// 初回表示: 中身を生成
 const gdata=boostGroups[gname];
 if(!gdata){ return; }
 const wordList=gdata.words||[];
@@ -1009,7 +1007,7 @@ const alreadyIn=!!wordGroupMap[w];
 const chipClass=alreadyIn?“word-chip in-list”:“word-chip”;
 const addBtn=alreadyIn
 ? `<span class="word-chip-add" title="登録済み">✓</span>`
-: `<span class="word-chip-add" onclick="addWordToGroup('${w.replace(/'/g,"\\'")}','${gname.replace(/'/g,"\\'")}','${panelId}')" title="追加">＋</span>`;
+: `<span class="word-chip-add" data-word="${w}" data-gname="${gname}" data-panel="${panelId}" onclick="addWordToGroup(this)" title="追加">＋</span>`;
 html+=`<span class="${chipClass}" data-word="${w}" style="${alreadyIn?'':'border-color:'+color+'44'}">${w}${addBtn}</span>`;
 });
 html+=`</div>`;
@@ -1017,20 +1015,17 @@ panel.innerHTML=html;
 panel.classList.add(“open”);
 }
 
-// ★ 追加: ワードをグループ（wordGroupMap）に追加してチップを更新
-function addWordToGroup(word, gname, panelId){
-// boostGroups に登録されていなければ追加
+function addWordToGroup(el){
+const word=el.dataset.word, gname=el.dataset.gname, panelId=el.dataset.panel;
 if(!boostGroups[gname]) return;
 if(!boostGroups[gname].words.includes(word)){
 boostGroups[gname].words.push(word);
 }
 wordGroupMap[word]=gname;
-// 既存の words スコアも更新
 if(words[word]){
 words[word].weight=words[word].count*getBoostRate(word);
 networkDirty=true;
 }
-// パネルのそのチップだけ更新（再描画）
 const panel=document.getElementById(panelId);
 if(!panel) return;
 const chip=panel.querySelector(`.word-chip[data-word="${word}"]`);
@@ -1041,8 +1036,8 @@ if(addBtn){ addBtn.textContent=“✓”; addBtn.title=“登録済み”; addBt
 }
 }
 
-function onRateChange(gname,val){
-const v=parseFloat(val); if(isNaN(v)||v<1) return;
+function onRateChange(el){
+const gname=el.dataset.gname, v=parseFloat(el.value); if(isNaN(v)||v<1) return;
 groupRates[gname]=v; saveRates();
 Object.entries(words).forEach(([word,data])=>{ data.weight=data.count*getBoostRate(word); });
 networkDirty=true;
